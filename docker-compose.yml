@@ -1,0 +1,57 @@
+services:
+  # ── Discord Bot ────────────────────────────────────────────────
+  qotd-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qotd-bot
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      TZ: Europe/Berlin
+      # Discord settings – sourced from .env file
+      Discord__Token: ${DISCORD_TOKEN}
+      Discord__GuildId: ${DISCORD_GUILD_ID}
+      Discord__ChannelId: ${DISCORD_CHANNEL_ID}
+      # Scheduling
+      Scheduling__PostTime: ${POST_TIME:-07:00}
+      Scheduling__Timezone: ${TIMEZONE:-Europe/Berlin}
+      # Database
+      ConnectionStrings__Postgres: >-
+        Host=postgres;Port=5432;Database=qotd;Username=qotd;Password=${POSTGRES_PASSWORD}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - qotd-net
+
+  # ── PostgreSQL ─────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: qotd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qotd
+      POSTGRES_USER: qotd
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Berlin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - qotd-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qotd -d qotd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  qotd-net:
+    driver: bridge

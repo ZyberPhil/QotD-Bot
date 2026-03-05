@@ -1,0 +1,22 @@
+# Secrets / environment files
+.env
+.env.*
+!.env.example
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+*.user
+*.suo
+.vscode/
+
+# Logs
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
