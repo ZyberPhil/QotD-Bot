@@ -51,10 +51,7 @@ jobs:
           mkdir -p /opt/qotd-bot
           cd /opt/qotd-bot
 
-          # Copy docker-compose from the build context
-          # (Note: In a self-hosted runner, the workspace might be cleaned, 
-          # so we ensure we have the necessary files)
-          
+          # 1. Write the .env file from GitHub Secrets
           cat > .env << 'EOF'
           DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}
           DISCORD_GUILD_ID=${{ secrets.DISCORD_GUILD_ID }}
@@ -64,11 +61,64 @@ jobs:
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           EOF
 
-          # Pull the latest image and restart
-          docker compose pull qotd-bot
+          # 2. Write the docker-compose.yml file
+          cat > docker-compose.yml << 'EOF'
+          services:
+            qotd-bot:
+              image: ${{ env.IMAGE_NAME }}:latest
+              container_name: qotd-bot
+              restart: unless-stopped
+              depends_on:
+                postgres:
+                  condition: service_healthy
+              environment:
+                ASPNETCORE_ENVIRONMENT: Production
+                TZ: Europe/Berlin
+                Discord__Token: ${DISCORD_TOKEN}
+                Discord__GuildId: ${DISCORD_GUILD_ID}
+                Discord__ChannelId: ${DISCORD_CHANNEL_ID}
+                Scheduling__PostTime: ${POST_TIME:-07:00}
+                Scheduling__Timezone: ${TIMEZONE:-Europe/Berlin}
+                ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=qotd;Username=qotd;Password=${POSTGRES_PASSWORD}
+              volumes:
+                - ./logs:/app/logs
+              networks:
+                - qotd-net
+
+            postgres:
+              image: postgres:17-alpine
+              container_name: qotd-postgres
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: qotd
+                POSTGRES_USER: qotd
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+                TZ: Europe/Berlin
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+              networks:
+                - qotd-net
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U qotd -d qotd"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+                start_period: 10s
+
+          volumes:
+            postgres_data:
+              driver: local
+
+          networks:
+            qotd-net:
+              driver: bridge
+          EOF
+
+          # 3. Pull and restart
+          docker compose pull
           docker compose up -d --remove-orphans
 
-          # Clean up old images
+          # 4. Clean up old images
           docker image prune -f
 
           echo "✅ Deployment complete."
