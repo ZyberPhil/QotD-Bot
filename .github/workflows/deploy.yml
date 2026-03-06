@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/qotd-bot
+  IMAGE_NAME: ghcr.io/zyberphil/qotd-bot
 
 jobs:
   build-and-push:
