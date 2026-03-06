@@ -21,21 +21,48 @@ sudo chown $USER:$USER /opt/qotd-bot
 
 ---
 
-## Schritt 2: Self-hosted Runner auf dem Server einrichten
+## Schritt 2: GitHub Runner auf dem Server einrichten
 
-Damit GitHub Befehle auf deinem Server ausführen kann, ohne SSH zu nutzen, installieren wir den GitHub Runner:
+Damit GitHub Befehle auf deinem Server ausführen kann, ohne SSH zu nutzen, muss ein Runner auf dem Server laufen. Wähle eine der folgenden Optionen:
+
+### Option A: Manueller Runner (Direkt auf dem Host)
+
+*Empfohlen, wenn du den Runner als festen System-Dienst installieren willst.*
 
 1. Gehe in deinem GitHub-Repository zu **Settings -> Actions -> Runners**.
 2. Klicke auf **New self-hosted runner**.
 3. Wähle **Linux** und die passende Architektur (meist x64).
-4. Folge exakt den Befehlen unter **Download** und **Configure** in deinem Terminal auf dem Server.
-5. **Wichtig:** Wenn du gefragt wirst, welche Labels du vergeben willst, drücke einfach Enter (Standard-Labels reichen).
-6. Starte den Runner am Ende als Service, damit er immer läuft:
+4. Folge den Befehlen unter **Download** und **Configure**.
+5. Installiere den Runner als Dienst:
 
    ```bash
    sudo ./svc.sh install
    sudo ./svc.sh start
    ```
+
+### Option B: Docker-Runner (Empfohlen für mehrere Bots) 🐳
+
+*Ideal, wenn du bereits einen Runner für einen anderen Bot hast. Du startest einfach einen zweiten Container.*
+
+> [!IMPORTANT]
+> Der **Registration Token** von GitHub ist nur für **ca. 1 Stunde** gültig. Wenn du die Fehlermeldung "Invalid configuration provided for token" erhältst, ist der Token wahrscheinlich abgelaufen. Hole dir in diesem Fall einen neuen Token aus den GitHub-Einstellungen.
+
+1. Gehe in deinem GitHub-Repository zu **Settings -> Actions -> Runners -> New self-hosted runner**.
+2. Kopiere dir nur den **Registration Token** (hinter dem Flag `--token`).
+3. Starte den Runner-Container auf deinem Server (Beispiel mit `my-actions-runner` Image):
+
+```bash
+docker run -d --restart always --name github-runner-qotd \
+  -e REPO_URL=https://github.com/DEIN_USER/QotD-Bot \
+  -e RUNNER_NAME=qotd-bot-runner \
+  -e RUNNER_TOKEN=DEIN_TOKEN_VON_GITHUB \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/qotd-bot:/opt/qotd-bot \
+  -v /usr/bin/docker:/usr/bin/docker \
+  myoung34/github-runner:latest
+```
+
+*Hinweis: Das Image `myoung34/github-runner` ist ein bewährter Community-Runner. Du kannst auch jedes andere Runner-Image deiner Wahl verwenden. Der Mount `-v /var/run/docker.sock` ist wichtig, damit der Runner den Bot-Container auf deinem Server starten darf (Docker-outside-of-Docker).*
 
 ---
 
