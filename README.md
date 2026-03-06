@@ -1,6 +1,6 @@
 # 🤖 QotD Bot — Question of the Day Discord Bot
 
-A Discord bot that automatically posts a **Question of the Day** to a configured channel at a scheduled time, built with **.NET 10**, **DSharpPlus v5**, **PostgreSQL**, and **Docker**.
+A Discord bot that automatically posts a **Question of the Day** to a configured channel at a scheduled time, built with **.NET 9**, **DSharpPlus v5**, **PostgreSQL**, and **Docker**.
 
 ---
 
@@ -17,10 +17,12 @@ A Discord bot that automatically posts a **Question of the Day** to a configured
 ## 🚀 Quick Start (Local)
 
 ### Prerequisites
+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - A [Discord Bot Token](https://discord.com/developers/applications)
 
 ### 1. Clone & configure
+
 ```bash
 git clone https://github.com/YOUR_USER/QotD-Bot.git
 cd QotD-Bot
@@ -29,6 +31,7 @@ cp .env.example .env
 ```
 
 ### 2. Fill in `.env`
+
 ```env
 DISCORD_TOKEN=your_bot_token_here
 DISCORD_GUILD_ID=123456789012345678    # Your server ID
@@ -39,6 +42,7 @@ POSTGRES_PASSWORD=change_me
 ```
 
 ### 3. Run
+
 ```bash
 docker compose up -d
 docker compose logs -f qotd-bot
@@ -68,6 +72,7 @@ The bot will auto-apply database migrations on startup.
 | `/list-questions` | List upcoming unposted questions | Manage Server |
 
 ### Example
+
 ```
 /add-question date:2026-03-07 text:What is your favourite programming language?
 ```
@@ -112,6 +117,7 @@ QotD-Bot/
 ## 🚀 CI/CD — GitHub Actions
 
 The workflow (`.github/workflows/deploy.yml`) triggers on push to `main`:
+
 1. Builds & pushes the Docker image to **GitHub Container Registry** (ghcr.io)
 2. SSHes into your server and runs `docker compose up -d`
 
@@ -129,6 +135,7 @@ The workflow (`.github/workflows/deploy.yml`) triggers on push to `main`:
 | `POSTGRES_PASSWORD` | Strong database password |
 
 ### Server Setup (one-time)
+
 ```bash
 # On your Ubuntu 24.04 server:
 sudo mkdir -p /opt/qotd-bot
@@ -142,20 +149,24 @@ sudo chown $USER:$USER /opt/qotd-bot
 
 ### Running locally without Docker
 
-1. Install [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+1. Install [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 2. Start a local Postgres instance
 3. Set environment variables or edit `appsettings.json`
 4. Create the initial migration (first-time only):
+
    ```bash
    cd src/QotD.Bot
    dotnet ef migrations add InitialCreate --output-dir Data/Migrations
    ```
+
 5. Run:
+
    ```bash
    dotnet run --project src/QotD.Bot
    ```
 
 ### Adding EF Core migrations
+
 ```bash
 dotnet ef migrations add <MigrationName> \
   --project src/QotD.Bot \

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>QotD.Bot</RootNamespace>
@@ -11,9 +11,8 @@
 
   <ItemGroup>
     <!-- DSharpPlus v5 nightly -->
-    <PackageReference Include="DSharpPlus" Version="5.0.0-*" />
-    <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-*" />
-    <PackageReference Include="DSharpPlus.Extensions.Hosting" Version="5.0.0-*" />
+    <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02574" />
+    <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02574" />
 
     <!-- Entity Framework Core + Npgsql -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />
@@ -23,7 +22,7 @@
     </PackageReference>
 
     <!-- Hosting -->
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.*" />
 
     <!-- Serilog -->
     <PackageReference Include="Serilog.Extensions.Hosting" Version="9.*" />

@@ -28,7 +28,7 @@ public sealed class ListQuestionsCommand
     {
         // Require ManageGuild permission (admin guard)
         if (ctx.Member is not null &&
-            !ctx.Member.Permissions.HasFlag(DSharpPlus.Permissions.ManageGuild))
+            !ctx.Member.Permissions.HasPermission(DSharpPlus.Entities.DiscordPermission.ManageGuild))
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
