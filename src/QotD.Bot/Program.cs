@@ -50,16 +50,26 @@ try
     var discordToken = builder.Configuration[$"{DiscordSettings.SectionName}:Token"]
         ?? throw new InvalidOperationException("Discord:Token is not configured.");
 
-    var discord = DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged)
-        .UseCommands((_, extension) =>
-        {
-            extension.AddCommands<AddQuestionCommand>();
-            extension.AddCommands<ListQuestionsCommand>();
-            extension.AddCommands<ConfigCommand>();
-        })
-        .Build();
-
-    builder.Services.AddSingleton(discord);
+    builder.Services.AddSingleton(s =>
+    {
+        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged)
+            .ConfigureServices(services =>
+            {
+                services.AddDbContext<AppDbContext>(options =>
+                {
+                    options.UseNpgsql(
+                        builder.Configuration.GetConnectionString("Postgres"),
+                        npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
+                });
+            })
+            .UseCommands((_, extension) =>
+            {
+                extension.AddCommands<AddQuestionCommand>();
+                extension.AddCommands<ListQuestionsCommand>();
+                extension.AddCommands<ConfigCommand>();
+            })
+            .Build();
+    });
 
     // ── Background Services ─────────────────────────────────────────────────────
     builder.Services.AddHostedService<DiscordBotService>();

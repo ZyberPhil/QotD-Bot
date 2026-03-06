@@ -6,11 +6,11 @@ A Discord bot that automatically posts a **Question of the Day** to a configured
 
 ## ✨ Features
 
-- 📅 **Daily scheduling** — posts a question at a configured time in your local timezone
-- 💾 **PostgreSQL persistence** — questions are stored with `ScheduledFor` date and `Posted` status
-- 🔧 **Admin slash commands** — `/add-question` and `/list-questions` (require Manage Server permission)
+- 📅 **Per-Server Scheduling** — each server can configure its own channel and post time
+- 💾 **PostgreSQL persistence** — questions and server settings are stored in a database
+- 🔧 **Admin slash commands** — `/config-qotd` for server setup, `/add-question` for content
 - 🐳 **Docker-first** — full `docker-compose.yml` setup, multi-stage build
-- 🚀 **CI/CD** — GitHub Actions pipeline builds & deploys to your server on every push to `main`
+- 🚀 **Modern CI/CD** — SSH-free deployment via self-hosted GitHub runner
 
 ---
 
@@ -68,7 +68,9 @@ The bot will auto-apply database migrations on startup.
 
 | Command | Description | Permission |
 |---|---|---|
-| `/add-question date text` | Schedule a new question for a date | Manage Server |
+| `/config-qotd channel` | Set the channel for daily questions | Manage Server |
+| `/config-qotd time` | Set the daily post time (HH:mm) | Manage Server |
+| `/add-question date text` | Schedule a new question for a specific date | Manage Server |
 | `/list-questions` | List upcoming unposted questions | Manage Server |
 
 ### Example
@@ -119,20 +121,17 @@ QotD-Bot/
 The workflow (`.github/workflows/deploy.yml`) triggers on push to `main`:
 
 1. Builds & pushes the Docker image to **GitHub Container Registry** (ghcr.io)
-2. SSHes into your server and runs `docker compose up -d`
+2. Triggers the **self-hosted runner** on your server to update the container (no SSH required!)
 
 ### Required GitHub Secrets
 
 | Secret | Description |
 |---|---|
-| `SERVER_HOST` | IP or hostname of your Ubuntu server |
-| `SERVER_USER` | SSH username (e.g. `ubuntu`) |
-| `SERVER_SSH_KEY` | Private SSH key (PEM format) |
 | `DISCORD_TOKEN` | Bot token |
-| `DISCORD_GUILD_ID` | Guild ID |
-| `DISCORD_CHANNEL_ID` | Channel ID |
-| `POST_TIME` | Post time, e.g. `07:00` |
 | `POSTGRES_PASSWORD` | Strong database password |
+| `DISCORD_GUILD_ID` | (Optional) Default Guild ID |
+| `DISCORD_CHANNEL_ID` | (Optional) Default Channel ID |
+| `POST_TIME` | (Optional) Default post time |
 
 ### Server Setup (one-time)
 
