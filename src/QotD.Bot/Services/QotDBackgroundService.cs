@@ -4,124 +4,126 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using QotD.Bot.Configuration;
 using QotD.Bot.Data;
+using QotD.Bot.Data.Models;
 
 namespace QotD.Bot.Services;
 
 /// <summary>
-/// Background service that checks the database at the configured time each day
-/// and posts the "Question of the Day" to the configured Discord channel.
+/// Background service that checks the database every minute to see if any guilds
+/// are due for their "Question of the Day".
 /// </summary>
 public sealed class QotDBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly DiscordClient _discord;
-    private readonly DiscordSettings _discordSettings;
-    private readonly SchedulingSettings _schedulingSettings;
     private readonly ILogger<QotDBackgroundService> _logger;
 
     public QotDBackgroundService(
         IServiceScopeFactory scopeFactory,
         DiscordClient discord,
-        IOptions<DiscordSettings> discordSettings,
-        IOptions<SchedulingSettings> schedulingSettings,
         ILogger<QotDBackgroundService> logger)
     {
         _scopeFactory = scopeFactory;
         _discord = discord;
-        _discordSettings = discordSettings.Value;
-        _schedulingSettings = schedulingSettings.Value;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("QotD background service started.");
+        _logger.LogInformation("QotD background service (Multi-Guild) started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var delay = ComputeDelayUntilNextPost();
-            _logger.LogInformation("Next QotD post in {Delay:hh\\:mm\\:ss} (at {Time:HH:mm} {Tz}).",
-                delay,
-                DateTime.UtcNow.Add(delay),
-                _schedulingSettings.Timezone);
-
             try
             {
-                await Task.Delay(delay, stoppingToken);
+                await ProcessGuildsAsync(stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
-                break;
+                _logger.LogError(ex, "Error while processing guild QotD schedules.");
             }
 
-            await PostQuestionOfTheDayAsync(stoppingToken);
+            // Sleep until the next full minute
+            var now = DateTime.UtcNow;
+            var nextMinute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0).AddMinutes(1);
+            var delay = nextMinute - now;
+
+            await Task.Delay(delay, stoppingToken);
         }
 
         _logger.LogInformation("QotD background service stopped.");
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private TimeSpan ComputeDelayUntilNextPost()
-    {
-        var tz = _schedulingSettings.GetTimeZoneInfo();
-        var postTime = _schedulingSettings.GetPostTime();
-
-        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-        var nextRunLocal = nowLocal.Date + postTime.ToTimeSpan();
-
-        // If the time for today has already passed, schedule for tomorrow.
-        if (nextRunLocal <= nowLocal)
-            nextRunLocal = nextRunLocal.AddDays(1);
-
-        var nextRunUtc = TimeZoneInfo.ConvertTimeToUtc(nextRunLocal, tz);
-        return nextRunUtc - DateTime.UtcNow;
-    }
-
-    private async Task PostQuestionOfTheDayAsync(CancellationToken ct)
+    private async Task ProcessGuildsAsync(CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var today = DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _schedulingSettings.GetTimeZoneInfo()));
+        var configs = await db.GuildConfigs.ToListAsync(ct);
+        if (configs.Count == 0) return;
 
-        var question = await db.Questions
-            .Where(q => q.ScheduledFor == today && !q.Posted)
-            .FirstOrDefaultAsync(ct);
-
-        if (question is null)
+        foreach (var config in configs)
         {
-            _logger.LogWarning("No question scheduled for {Date}. Skipping post.", today);
-            return;
+            if (config.ChannelId == 0) continue;
+
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(config.Timezone);
+            var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+            
+            // Check if we are within the current minute of the scheduled post time
+            if (nowLocal.Hour == config.PostTime.Hour && nowLocal.Minute == config.PostTime.Minute)
+            {
+                await TryPostForGuildAsync(db, config, nowLocal.Date, ct);
+            }
         }
+    }
+
+    private async Task TryPostForGuildAsync(AppDbContext db, GuildConfig config, DateTime localDate, CancellationToken ct)
+    {
+        var dateOnly = DateOnly.FromDateTime(localDate);
+
+        // 1. Get today's question
+        var question = await db.Questions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(q => q.ScheduledFor == dateOnly, ct);
+
+        if (question == null)
+        {
+             _logger.LogWarning("No question scheduled for {Date} (Guild {GuildId}).", dateOnly, config.GuildId);
+             return;
+        }
+
+        // 2. Check if already posted to this guild
+        var alreadyPosted = await db.GuildHistories.AnyAsync(h => h.GuildId == config.GuildId && h.QuestionId == question.Id, ct);
+        if (alreadyPosted) return;
 
         try
         {
-            var channel = await _discord.GetChannelAsync(_discordSettings.ChannelId);
-
+            _logger.LogInformation("Posting QotD to Guild {GuildId}, Channel {ChannelId}...", config.GuildId, config.ChannelId);
+            
+            var channel = await _discord.GetChannelAsync(config.ChannelId);
             var embed = new DiscordEmbedBuilder()
                 .WithTitle("❓ Question of the Day")
                 .WithDescription(question.QuestionText)
                 .WithColor(new DiscordColor("#5865F2"))
-                .WithFooter($"Question #{question.Id} · {today:dddd, MMMM d, yyyy}")
+                .WithFooter($"Question #{question.Id} · {dateOnly:dddd, MMMM d, yyyy}")
                 .WithTimestamp(DateTimeOffset.UtcNow)
                 .Build();
 
             await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
 
-            question.Posted = true;
+            // Record in history
+            db.GuildHistories.Add(new GuildHistory 
+            { 
+                GuildId = config.GuildId, 
+                QuestionId = question.Id 
+            });
+            
             await db.SaveChangesAsync(ct);
-
-            _logger.LogInformation("Posted QotD #{Id} for {Date}: \"{Text}\"",
-                question.Id, today, question.QuestionText[..Math.Min(80, question.QuestionText.Length)]);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to post QotD for {Date}.", today);
+            _logger.LogError(ex, "Failed to post QotD for Guild {GuildId}.", config.GuildId);
         }
     }
 }

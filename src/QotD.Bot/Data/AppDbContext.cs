@@ -8,6 +8,8 @@ public sealed class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Question> Questions => Set<Question>();
+    public DbSet<GuildConfig> GuildConfigs => Set<GuildConfig>();
+    public DbSet<GuildHistory> GuildHistories => Set<GuildHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +32,22 @@ public sealed class AppDbContext : DbContext
             // Ensure only one question per day
             entity.HasIndex(q => q.ScheduledFor)
                   .IsUnique();
+        });
+
+        modelBuilder.Entity<GuildConfig>(entity =>
+        {
+            entity.HasKey(g => g.GuildId);
+            entity.Property(g => g.GuildId).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<GuildHistory>(entity =>
+        {
+            entity.HasKey(h => h.Id);
+            entity.HasIndex(h => new { h.GuildId, h.QuestionId }).IsUnique();
+            
+            entity.HasOne(h => h.Question)
+                  .WithMany()
+                  .HasForeignKey(h => h.QuestionId);
         });
     }
 }

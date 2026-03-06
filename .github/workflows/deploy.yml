@@ -41,38 +41,34 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to Server via SSH
+    name: Deploy to Server
     needs: build-and-push
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
+      - name: Update Docker Compose
+        run: |
+          set -e
+          mkdir -p /opt/qotd-bot
+          cd /opt/qotd-bot
 
-            # Navigate to the project directory on the server
-            cd /opt/qotd-bot
+          # Copy docker-compose from the build context
+          # (Note: In a self-hosted runner, the workspace might be cleaned, 
+          # so we ensure we have the necessary files)
+          
+          cat > .env << 'EOF'
+          DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}
+          DISCORD_GUILD_ID=${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID=${{ secrets.DISCORD_CHANNEL_ID }}
+          POST_TIME=${{ secrets.POST_TIME }}
+          TIMEZONE=Europe/Berlin
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          EOF
 
-            # Write the .env file from GitHub Secrets
-            cat > .env << 'EOF'
-            DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}
-            DISCORD_GUILD_ID=${{ secrets.DISCORD_GUILD_ID }}
-            DISCORD_CHANNEL_ID=${{ secrets.DISCORD_CHANNEL_ID }}
-            POST_TIME=${{ secrets.POST_TIME }}
-            TIMEZONE=Europe/Berlin
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            EOF
+          # Pull the latest image and restart
+          docker compose pull qotd-bot
+          docker compose up -d --remove-orphans
 
-            # Pull the latest image and restart
-            docker compose pull qotd-bot
-            docker compose up -d --remove-orphans
+          # Clean up old images
+          docker image prune -f
 
-            # Clean up old images
-            docker image prune -f
-
-            echo "✅ Deployment complete."
+          echo "✅ Deployment complete."

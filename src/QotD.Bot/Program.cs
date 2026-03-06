@@ -55,6 +55,7 @@ try
         {
             extension.AddCommands<AddQuestionCommand>();
             extension.AddCommands<ListQuestionsCommand>();
+            extension.AddCommands<ConfigCommand>();
         })
         .Build();
 
