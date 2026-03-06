@@ -58,11 +58,10 @@ docker run -d --restart always --name github-runner-qotd \
   -e RUNNER_TOKEN=DEIN_TOKEN_VON_GITHUB \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /opt/qotd-bot:/opt/qotd-bot \
-  -v /usr/bin/docker:/usr/bin/docker \
   myoung34/github-runner:latest
 ```
 
-*Hinweis: Das Image `myoung34/github-runner` ist ein bewährter Community-Runner. Du kannst auch jedes andere Runner-Image deiner Wahl verwenden. Der Mount `-v /var/run/docker.sock` ist wichtig, damit der Runner den Bot-Container auf deinem Server starten darf (Docker-outside-of-Docker).*
+*Hinweis: Das Image `myoung34/github-runner` hat Docker bereits vorinstalliert.*
 
 ---
 
