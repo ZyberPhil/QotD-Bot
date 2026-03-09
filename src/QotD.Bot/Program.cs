@@ -61,6 +61,10 @@ try
                         builder.Configuration.GetConnectionString("Postgres"),
                         npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
                 });
+
+                // Add services needed by commands or event handlers
+                services.AddSingleton(s.GetRequiredService<TemplateSessionService>());
+                services.AddSingleton(s.GetRequiredService<DiscordBotService>());
             })
             .UseCommands((_, extension) =>
             {
