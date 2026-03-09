@@ -47,6 +47,7 @@ public sealed class DiscordBotService : IHostedService
         
         if (_sessionService.IsInSession(e.Author.Id, e.Guild.Id))
         {
+            _logger.LogInformation("Template session detected for user {UserId} in Guild {GuildId}.", e.Author.Id, e.Guild.Id);
             try
             {
                 using var scope = _scopeFactory.CreateScope();

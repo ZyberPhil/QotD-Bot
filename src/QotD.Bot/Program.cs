@@ -62,9 +62,13 @@ try
                         npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
                 });
 
-                // Add services needed by commands or event handlers
+                // Share essential singletons from the main host provider
+                services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
                 services.AddSingleton(s.GetRequiredService<TemplateSessionService>());
-                services.AddSingleton<DiscordBotService>();
+                services.AddSingleton(s.GetRequiredService<DiscordBotService>());
+                
+                // Also share logging and options if needed by commands
+                services.AddSingleton(s.GetRequiredService<ILogger<ConfigCommand>>());
             })
             .UseCommands((_, extension) =>
             {
