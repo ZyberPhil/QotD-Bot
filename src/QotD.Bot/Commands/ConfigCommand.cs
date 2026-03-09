@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Services;
 using System.ComponentModel;
 
 namespace QotD.Bot.Commands;
@@ -16,11 +17,13 @@ namespace QotD.Bot.Commands;
 public sealed class ConfigCommand
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TemplateSessionService _sessionService;
     private readonly ILogger<ConfigCommand> _logger;
 
-    public ConfigCommand(IServiceScopeFactory scopeFactory, ILogger<ConfigCommand> logger)
+    public ConfigCommand(IServiceScopeFactory scopeFactory, TemplateSessionService sessionService, ILogger<ConfigCommand> logger)
     {
         _scopeFactory = scopeFactory;
+        _sessionService = sessionService;
         _logger = logger;
     }
 
@@ -69,19 +72,13 @@ public sealed class ConfigCommand
     }
 
     [Command("template")]
-    [Description("Set a custom message template for the Question of the Day.")]
-    public async ValueTask SetTemplateAsync(CommandContext ctx, [Description("The template (use {message}, {date}, {id})")] string template)
+    [Description("Set a custom message template. The bot will wait for your next message.")]
+    public async ValueTask SetTemplateAsync(CommandContext ctx)
     {
         if (!await CheckPermissionsAsync(ctx)) return;
 
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
-        config.MessageTemplate = template;
-
-        await db.SaveChangesAsync();
-        await ctx.RespondAsync("✅ Custom message template has been set.");
+        _sessionService.StartSession(ctx.User.Id, ctx.Guild!.Id);
+        await ctx.RespondAsync("📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.");
     }
 
     [Command("template-reset")]

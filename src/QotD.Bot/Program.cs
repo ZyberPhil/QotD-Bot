@@ -11,7 +11,7 @@ using Serilog;
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .CreateBootstrapLogger();
+    .CreateBootstrapLogger(); 
 
 try
 {
@@ -68,10 +68,19 @@ try
                 extension.AddCommands<ListQuestionsCommand>();
                 extension.AddCommands<ConfigCommand>();
             })
+            .ConfigureEventHandlers(handlers =>
+            {
+                handlers.HandleMessageCreated((client, e) => 
+                {
+                    var service = client.ServiceProvider.GetRequiredService<DiscordBotService>();
+                    return service.OnMessageCreatedAsync(client, e);
+                });
+            })
             .Build();
     });
 
     // ── Background Services ─────────────────────────────────────────────────────
+    builder.Services.AddSingleton<TemplateSessionService>();
     builder.Services.AddHostedService<DiscordBotService>();
     builder.Services.AddHostedService<QotDBackgroundService>();
 
