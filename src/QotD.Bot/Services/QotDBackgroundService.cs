@@ -102,15 +102,28 @@ public sealed class QotDBackgroundService : BackgroundService
             _logger.LogInformation("Posting QotD to Guild {GuildId}, Channel {ChannelId}...", config.GuildId, config.ChannelId);
             
             var channel = await _discord.GetChannelAsync(config.ChannelId);
-            var embed = new DiscordEmbedBuilder()
-                .WithTitle("❓ Question of the Day")
-                .WithDescription(question.QuestionText)
-                .WithColor(new DiscordColor("#5865F2"))
-                .WithFooter($"Question #{question.Id} · {dateOnly:dddd, MMMM d, yyyy}")
-                .WithTimestamp(DateTimeOffset.UtcNow)
-                .Build();
 
-            await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+            if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
+            {
+                var formattedMessage = config.MessageTemplate
+                    .Replace("{message}", question.QuestionText)
+                    .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
+                    .Replace("{id}", question.Id.ToString());
+
+                await channel.SendMessageAsync(formattedMessage);
+            }
+            else
+            {
+                var embed = new DiscordEmbedBuilder()
+                    .WithTitle("❓ Question of the Day")
+                    .WithDescription(question.QuestionText)
+                    .WithColor(new DiscordColor("#5865F2"))
+                    .WithFooter($"Question #{question.Id} · {dateOnly:dddd, MMMM d, yyyy}")
+                    .WithTimestamp(DateTimeOffset.UtcNow)
+                    .Build();
+
+                await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+            }
 
             // Record in history
             db.GuildHistories.Add(new GuildHistory 

@@ -68,6 +68,64 @@ public sealed class ConfigCommand
         await ctx.RespondAsync($"✅ Question of the Day will now be posted at **{postTime:HH:mm}** ({config.Timezone}).");
     }
 
+    [Command("template")]
+    [Description("Set a custom message template for the Question of the Day.")]
+    public async ValueTask SetTemplateAsync(CommandContext ctx, [Description("The template (use {message}, {date}, {id})")] string template)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+        config.MessageTemplate = template;
+
+        await db.SaveChangesAsync();
+        await ctx.RespondAsync("✅ Custom message template has been set.");
+    }
+
+    [Command("template-reset")]
+    [Description("Reset the message template to the default embed.")]
+    public async ValueTask ResetTemplateAsync(CommandContext ctx)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+        config.MessageTemplate = null;
+
+        await db.SaveChangesAsync();
+        await ctx.RespondAsync("✅ Message template has been reset to the default embed.");
+    }
+
+    [Command("template-show")]
+    [Description("Show the current message template and a preview.")]
+    public async ValueTask ShowTemplateAsync(CommandContext ctx)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+
+        if (string.IsNullOrWhiteSpace(config.MessageTemplate))
+        {
+            await ctx.RespondAsync("ℹ️ No custom template set. Using default embed.");
+            return;
+        }
+
+        var preview = config.MessageTemplate
+            .Replace("{message}", "This is a sample question text.")
+            .Replace("{date}", DateTime.Now.ToString("dd.MM.yyyy"))
+            .Replace("{id}", "123");
+
+        var response = $"**Current Template:**\n```\n{config.MessageTemplate}\n```\n**Preview:**\n{preview}";
+        await ctx.RespondAsync(response);
+    }
+
     private static async Task<bool> CheckPermissionsAsync(CommandContext ctx)
     {
         if (ctx.Guild is null)

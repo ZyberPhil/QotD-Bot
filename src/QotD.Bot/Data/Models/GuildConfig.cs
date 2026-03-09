@@ -16,5 +16,7 @@ public sealed class GuildConfig
 
     public string Timezone { get; set; } = "Europe/Berlin";
 
+    public string? MessageTemplate { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
