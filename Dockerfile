@@ -35,3 +35,4 @@ USER appuser
 COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "QotD.Bot.dll"]
+
