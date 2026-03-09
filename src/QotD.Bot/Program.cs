@@ -85,7 +85,8 @@ try
 
     // ── Background Services ─────────────────────────────────────────────────────
     builder.Services.AddSingleton<TemplateSessionService>();
-    builder.Services.AddHostedService<DiscordBotService>();
+    builder.Services.AddSingleton<DiscordBotService>();
+    builder.Services.AddHostedService(s => s.GetRequiredService<DiscordBotService>());
     builder.Services.AddHostedService<QotDBackgroundService>();
 
     var host = builder.Build();
