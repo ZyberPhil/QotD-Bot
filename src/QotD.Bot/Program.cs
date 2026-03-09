@@ -52,7 +52,7 @@ try
 
     builder.Services.AddSingleton(s =>
     {
-        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged)
+        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents)
             .ConfigureServices(services =>
             {
                 services.AddDbContext<AppDbContext>(options =>
