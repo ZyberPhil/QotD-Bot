@@ -12,7 +12,7 @@ namespace QotD.Bot.Services;
 /// </summary>
 public sealed class DiscordBotService : IHostedService
 {
-    private readonly DiscordClient _client;
+    private readonly IServiceProvider _serviceProvider;
     private readonly DiscordSettings _settings;
     private readonly ILogger<DiscordBotService> _logger;
 
@@ -20,13 +20,13 @@ public sealed class DiscordBotService : IHostedService
     private readonly TemplateSessionService _sessionService;
 
     public DiscordBotService(
-        DiscordClient client,
+        IServiceProvider serviceProvider,
         IOptions<DiscordSettings> settings,
         IServiceScopeFactory scopeFactory,
         TemplateSessionService sessionService,
         ILogger<DiscordBotService> logger)
     {
-        _client = client;
+        _serviceProvider = serviceProvider;
         _settings = settings.Value;
         _scopeFactory = scopeFactory;
         _sessionService = sessionService;
@@ -36,9 +36,9 @@ public sealed class DiscordBotService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Connecting Discord bot to gateway…");
-        await _client.ConnectAsync();
-        _logger.LogInformation("Discord bot connected. Serving guild {GuildId}, channel {ChannelId}.",
-            _settings.GuildId, _settings.ChannelId);
+        var client = _serviceProvider.GetRequiredService<DiscordClient>();
+        await client.ConnectAsync();
+        _logger.LogInformation("Discord bot connected.");
     }
     
     public async Task OnMessageCreatedAsync(DiscordClient sender, DSharpPlus.EventArgs.MessageCreatedEventArgs e)
@@ -78,6 +78,7 @@ public sealed class DiscordBotService : IHostedService
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Disconnecting Discord bot…");
-        await _client.DisconnectAsync();
+        var client = _serviceProvider.GetRequiredService<DiscordClient>();
+        await client.DisconnectAsync();
     }
 }

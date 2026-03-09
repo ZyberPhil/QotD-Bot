@@ -64,7 +64,7 @@ try
 
                 // Add services needed by commands or event handlers
                 services.AddSingleton(s.GetRequiredService<TemplateSessionService>());
-                services.AddSingleton(s.GetRequiredService<DiscordBotService>());
+                services.AddSingleton<DiscordBotService>();
             })
             .UseCommands((_, extension) =>
             {
