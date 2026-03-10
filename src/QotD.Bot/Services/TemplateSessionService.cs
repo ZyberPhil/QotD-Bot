@@ -12,6 +12,7 @@ public sealed class TemplateSessionService
 
     public void StartSession(ulong userId, ulong guildId)
     {
+        Console.WriteLine($"[TemplateSession] Starting session for User {userId} in Guild {guildId}");
         _sessions[(userId, guildId)] = DateTime.UtcNow;
     }
 
@@ -19,12 +20,12 @@ public sealed class TemplateSessionService
     {
         if (_sessions.TryGetValue((userId, guildId), out var startTime))
         {
-            // Session expires after 5 minutes
             if (DateTime.UtcNow - startTime < TimeSpan.FromMinutes(5))
             {
                 return true;
             }
             
+            Console.WriteLine($"[TemplateSession] Session expired for User {userId} in Guild {guildId}");
             _sessions.TryRemove((userId, guildId), out _);
         }
         return false;

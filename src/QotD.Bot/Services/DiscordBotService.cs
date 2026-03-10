@@ -43,6 +43,7 @@ public sealed class DiscordBotService : IHostedService
     
     public async Task OnMessageCreatedAsync(DiscordClient sender, DSharpPlus.EventArgs.MessageCreatedEventArgs e)
     {
+        _logger.LogDebug("MessageCreated event received: {Content} from {Author} (Bot: {IsBot})", e.Message.Content, e.Author.Username, e.Author.IsBot);
         if (e.Author.IsBot || e.Guild == null) return;
         
         if (_sessionService.IsInSession(e.Author.Id, e.Guild.Id))

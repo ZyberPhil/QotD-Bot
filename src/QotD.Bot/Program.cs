@@ -70,12 +70,6 @@ try
                 // Also share logging and options if needed by commands
                 services.AddSingleton(s.GetRequiredService<ILogger<ConfigCommand>>());
             })
-            .UseCommands((_, extension) =>
-            {
-                extension.AddCommands<AddQuestionCommand>();
-                extension.AddCommands<ListQuestionsCommand>();
-                extension.AddCommands<ConfigCommand>();
-            })
             .ConfigureEventHandlers(handlers =>
             {
                 handlers.HandleMessageCreated((client, e) => 
@@ -83,6 +77,12 @@ try
                     var service = client.ServiceProvider.GetRequiredService<DiscordBotService>();
                     return service.OnMessageCreatedAsync(client, e);
                 });
+            })
+            .UseCommands((_, extension) =>
+            {
+                extension.AddCommands<AddQuestionCommand>();
+                extension.AddCommands<ListQuestionsCommand>();
+                extension.AddCommands<ConfigCommand>();
             })
             .Build();
     });
