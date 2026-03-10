@@ -13,6 +13,7 @@
     <!-- DSharpPlus v5 nightly -->
     <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02574" />
     <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02574" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02574" />
 
     <!-- Entity Framework Core + Npgsql -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />

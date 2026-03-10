@@ -2,12 +2,14 @@ using DSharpPlus;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
-using QotD.Bot.Services;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace QotD.Bot.Commands;
@@ -17,13 +19,11 @@ namespace QotD.Bot.Commands;
 public sealed class ConfigCommand
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly TemplateSessionService _sessionService;
     private readonly ILogger<ConfigCommand> _logger;
 
-    public ConfigCommand(IServiceScopeFactory scopeFactory, TemplateSessionService sessionService, ILogger<ConfigCommand> logger)
+    public ConfigCommand(IServiceScopeFactory scopeFactory, ILogger<ConfigCommand> logger)
     {
         _scopeFactory = scopeFactory;
-        _sessionService = sessionService;
         _logger = logger;
     }
 
@@ -77,8 +77,35 @@ public sealed class ConfigCommand
     {
         if (!await CheckPermissionsAsync(ctx)) return;
 
-        _sessionService.StartSession(ctx.User.Id, ctx.Guild!.Id);
-        await ctx.RespondAsync("📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.");
+        await ctx.RespondAsync("📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.\n*(Du hast 5 Minuten Zeit)*");
+
+        var interactivity = ctx.ServiceProvider.GetRequiredService<InteractivityExtension>();
+        var result = await interactivity.WaitForMessageAsync(
+            x => x.Author.Id == ctx.User.Id && x.ChannelId == ctx.Channel.Id,
+            TimeSpan.FromMinutes(5));
+
+        if (result.TimedOut)
+        {
+            await ctx.FollowupAsync("❌ Zeitüberschreitung. Die Template-Konfiguration wurde abgebrochen.");
+            return;
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+            config.MessageTemplate = result.Result.Content;
+
+            await db.SaveChangesAsync();
+            await ctx.FollowupAsync("✅ Das neue Template wurde gespeichert! Du kannst es mit `/config-qotd template-show` ansehen.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save template via interactivity.");
+            await ctx.FollowupAsync("❌ Fehler beim Speichern des Templates.");
+        }
     }
 
     [Command("template-reset")]

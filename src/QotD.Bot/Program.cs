@@ -1,5 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Commands;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.EntityFrameworkCore;
 using QotD.Bot.Commands;
 using QotD.Bot.Configuration;
@@ -64,20 +66,12 @@ try
 
                 // Share essential singletons from the main host provider
                 services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
-                services.AddSingleton(s.GetRequiredService<TemplateSessionService>());
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
                 
                 // Also share logging and options if needed by commands
                 services.AddSingleton(s.GetRequiredService<ILogger<ConfigCommand>>());
             })
-            .ConfigureEventHandlers(handlers =>
-            {
-                handlers.HandleMessageCreated((client, e) => 
-                {
-                    var service = client.ServiceProvider.GetRequiredService<DiscordBotService>();
-                    return service.OnMessageCreatedAsync(client, e);
-                });
-            })
+            .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {
                 extension.AddCommands<AddQuestionCommand>();
@@ -88,7 +82,6 @@ try
     });
 
     // ── Background Services ─────────────────────────────────────────────────────
-    builder.Services.AddSingleton<TemplateSessionService>();
     builder.Services.AddSingleton<DiscordBotService>();
     builder.Services.AddHostedService(s => s.GetRequiredService<DiscordBotService>());
     builder.Services.AddHostedService<QotDBackgroundService>();
