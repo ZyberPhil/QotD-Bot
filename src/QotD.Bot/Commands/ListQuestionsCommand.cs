@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using System.ComponentModel;
+using System.Linq;
 using System.Text;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Commands;
 
@@ -28,11 +30,11 @@ public sealed class ListQuestionsCommand
     {
         // Require ManageGuild permission (admin guard)
         if (ctx.Member is not null &&
-            !ctx.Member.Permissions.HasPermission(DSharpPlus.Entities.DiscordPermission.ManageGuild))
+            !ctx.Member.Permissions.HasPermission(DiscordPermission.ManageGuild))
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("❌ You need the **Manage Server** permission to use this command.")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("You need the **Manage Server** permission to use this command."))
                     .AsEphemeral());
             return;
         }
@@ -53,7 +55,7 @@ public sealed class ListQuestionsCommand
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("📭 No upcoming questions are scheduled.")
+                    .AddEmbed(CozyCoveUI.CreateInfoEmbed("No upcoming questions are scheduled.", "📭 Queue Empty"))
                     .AsEphemeral());
             return;
         }
@@ -61,16 +63,14 @@ public sealed class ListQuestionsCommand
         var sb = new StringBuilder();
         foreach (var q in questions)
         {
-            sb.AppendLine($"**{q.ScheduledFor:yyyy-MM-dd}** (#{q.Id}) — {q.QuestionText[..Math.Min(80, q.QuestionText.Length)]}{(q.QuestionText.Length > 80 ? "…" : "")}");
+            sb.AppendLine($"> **{q.ScheduledFor:yyyy-MM-dd}** (`#{q.Id}`) — {q.QuestionText[..Math.Min(80, q.QuestionText.Length)]}{(q.QuestionText.Length > 80 ? "…" : "")}");
         }
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle($"📅 Upcoming Questions ({questions.Count})")
-            .WithDescription(sb.ToString())
-            .WithColor(new DiscordColor("#FEE75C"))
+        var embed = CozyCoveUI.CreateBaseEmbed(
+            $"📅 Upcoming Questions ({questions.Count})",
+            sb.ToString())
             .WithFooter("Showing next 25 unposted questions")
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .Build();
+            .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
     }

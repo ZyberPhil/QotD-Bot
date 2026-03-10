@@ -32,7 +32,7 @@ public sealed class InvestigateCommand
             }
         }
 
-        var embed = LawlietUI.CreateBaseEmbed(
+        var embed = CozyCoveUI.CreateBaseEmbed(
             "📁 Fallakte: Analyse läuft...",
             $"Die Untersuchung des Subjekts **{user.Username}** wurde eingeleitet.")
             .AddField("🆔 Subjekt-ID", user.Id.ToString(), true)
@@ -48,7 +48,7 @@ public sealed class InvestigateCommand
             embed.AddField("📊 Status", "Subjekt befindet sich außerhalb des direkten Zugriffs.", false);
         }
 
-        // TODO: Find correct property for latency in DSharpPlus v5 nightly (Ping/GatewayPing/HeartbeatLatency not found)
+        // TODO: Find correct property for latency in DSharpPlus v5 nightly
         embed.WithAnalyticalFooter(0);
 
         await context.RespondAsync(embed);

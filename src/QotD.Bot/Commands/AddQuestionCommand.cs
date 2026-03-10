@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
 using System.ComponentModel;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Commands;
 
@@ -41,11 +42,11 @@ public sealed class AddQuestionCommand
     {
         // Require ManageGuild permission (admin guard)
         if (ctx.Member is not null &&
-            !ctx.Member.Permissions.HasPermission(DSharpPlus.Entities.DiscordPermission.ManageGuild))
+            !ctx.Member.Permissions.HasPermission(DiscordPermission.ManageGuild))
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("❌ You need the **Manage Server** permission to use this command.")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("You need the **Manage Server** permission to use this command."))
                     .AsEphemeral());
             return;
         }
@@ -54,7 +55,7 @@ public sealed class AddQuestionCommand
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("❌ Question text must be 2000 characters or less.")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
                     .AsEphemeral());
              return;
         }
@@ -63,7 +64,7 @@ public sealed class AddQuestionCommand
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("❌ Invalid date format. Use `YYYY-MM-DD`, e.g. `2026-03-07`.")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`, e.g. `2026-03-07`."))
                     .AsEphemeral());
             return;
         }
@@ -72,7 +73,7 @@ public sealed class AddQuestionCommand
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent("❌ Cannot schedule a question in the past.")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Cannot schedule a question in the past."))
                     .AsEphemeral());
             return;
         }
@@ -88,7 +89,7 @@ public sealed class AddQuestionCommand
         {
             await ctx.RespondAsync(
                 new DiscordInteractionResponseBuilder()
-                    .WithContent($"❌ A question is already scheduled for **{scheduledFor:yyyy-MM-dd}**: *\"{existing.QuestionText}\"*")
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"A question is already scheduled for **{scheduledFor:yyyy-MM-dd}**:\n*\"{existing.QuestionText}\"*"))
                     .AsEphemeral());
             return;
         }
@@ -104,14 +105,12 @@ public sealed class AddQuestionCommand
 
         _logger.LogInformation("Added question #{Id} for {Date}.", question.Id, scheduledFor);
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("✅ Question Scheduled")
-            .WithDescription($"**{text}**")
+        var embed = CozyCoveUI.CreateSuccessEmbed(
+            $"**{text}**",
+            "✅ Question Scheduled")
             .AddField("Date", scheduledFor.ToString("dddd, MMMM d, yyyy"), inline: true)
             .AddField("Question ID", $"#{question.Id}", inline: true)
-            .WithColor(new DiscordColor("#57F287"))
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .Build();
+            .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
     }

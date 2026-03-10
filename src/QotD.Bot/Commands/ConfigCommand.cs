@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
-using Microsoft.Extensions.Logging;
+using QotD.Bot.UI;
 using System.ComponentModel;
 
 namespace QotD.Bot.Commands;
@@ -35,7 +35,9 @@ public sealed class ConfigCommand
 
         if (channel.Type != DiscordChannelType.Text)
         {
-            await ctx.RespondAsync("❌ Please select a text channel.");
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Please select a text channel."))
+                .AsEphemeral());
             return;
         }
 
@@ -46,7 +48,9 @@ public sealed class ConfigCommand
         config.ChannelId = channel.Id;
 
         await db.SaveChangesAsync();
-        await ctx.RespondAsync($"✅ Question of the Day will now be posted in {channel.Mention}.");
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Question of the Day will now be posted in {channel.Mention}.", "✅ Channel Updated"))
+            .AsEphemeral());
     }
 
     [Command("time")]
@@ -57,7 +61,9 @@ public sealed class ConfigCommand
 
         if (!TimeOnly.TryParseExact(time, "HH:mm", out var postTime))
         {
-            await ctx.RespondAsync("❌ Invalid time format. Please use HH:mm (e.g., 07:00, 22:30).");
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid time format. Please use HH:mm (e.g., 07:00, 22:30)."))
+                .AsEphemeral());
             return;
         }
 
@@ -68,7 +74,9 @@ public sealed class ConfigCommand
         config.PostTime = postTime;
 
         await db.SaveChangesAsync();
-        await ctx.RespondAsync($"✅ Question of the Day will now be posted at **{postTime:HH:mm}** ({config.Timezone}).");
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Question of the Day will now be posted at **{postTime:HH:mm}** ({config.Timezone}).", "✅ Time Updated"))
+            .AsEphemeral());
     }
 
     [Command("template")]
@@ -79,7 +87,11 @@ public sealed class ConfigCommand
 
         _logger.LogInformation("Starting template capture for user {User} in channel {Channel}", ctx.User.Id, ctx.Channel.Id);
 
-        await ctx.RespondAsync("📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.\n*(Du hast 5 Minuten Zeit)*");
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(CozyCoveUI.CreateInfoEmbed(
+                "📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.\n*(Du hast 5 Minuten Zeit)*",
+                "Template Configuration"))
+            .AsEphemeral());
 
         try
         {
@@ -97,7 +109,9 @@ public sealed class ConfigCommand
             if (result.TimedOut)
             {
                 _logger.LogWarning("Template capture timed out for user {User}", ctx.User.Id);
-                await ctx.FollowupAsync("❌ Zeitüberschreitung. Die Template-Konfiguration wurde abgebrochen. Hast du den 'Message Content Intent' im Discord Developer Portal wirklich aktiviert?");
+                await ctx.FollowupAsync(new DiscordFollowupMessageBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Zeitüberschreitung. Die Template-Konfiguration wurde abgebrochen. Hast du den 'Message Content Intent' im Discord Developer Portal wirklich aktiviert?"))
+                    .AsEphemeral());
                 return;
             }
 
@@ -110,12 +124,16 @@ public sealed class ConfigCommand
             config.MessageTemplate = result.Result.Content;
 
             await db.SaveChangesAsync();
-            await ctx.FollowupAsync("✅ Das neue Template wurde gespeichert! Du kannst es mit `/config-qotd template-show` ansehen.");
+            await ctx.FollowupAsync(new DiscordFollowupMessageBuilder()
+                .AddEmbed(CozyCoveUI.CreateSuccessEmbed("Das neue Template wurde gespeichert! Du kannst es mit `/config-qotd template-show` ansehen.", "✅ Template Saved"))
+                .AsEphemeral());
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save template via interactivity.");
-            await ctx.FollowupAsync("❌ Ein interner Fehler ist aufgetreten.");
+            await ctx.FollowupAsync(new DiscordFollowupMessageBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Ein interner Fehler ist aufgetreten."))
+                .AsEphemeral());
         }
     }
 
@@ -132,7 +150,9 @@ public sealed class ConfigCommand
         config.MessageTemplate = null;
 
         await db.SaveChangesAsync();
-        await ctx.RespondAsync("✅ Message template has been reset to the default embed.");
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(CozyCoveUI.CreateSuccessEmbed("Message template has been reset to the default embed.", "✅ Template Reset"))
+            .AsEphemeral());
     }
 
     [Command("template-show")]
@@ -148,7 +168,9 @@ public sealed class ConfigCommand
 
         if (string.IsNullOrWhiteSpace(config.MessageTemplate))
         {
-            await ctx.RespondAsync("ℹ️ No custom template set. Using default embed.");
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateInfoEmbed("No custom template set. Using default embed.", "ℹ️ Template Info"))
+                .AsEphemeral());
             return;
         }
 
@@ -158,20 +180,27 @@ public sealed class ConfigCommand
             .Replace("{id}", "123");
 
         var response = $"**Current Template:**\n```\n{config.MessageTemplate}\n```\n**Preview:**\n{preview}";
-        await ctx.RespondAsync(response);
+        
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(CozyCoveUI.CreateBaseEmbed("Template Preview", response))
+            .AsEphemeral());
     }
 
     private static async Task<bool> CheckPermissionsAsync(CommandContext ctx)
     {
         if (ctx.Guild is null)
         {
-            await ctx.RespondAsync("❌ This command can only be used in a server.");
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("This command can only be used in a server."))
+                .AsEphemeral());
             return false;
         }
 
         if (ctx.Member is null || !ctx.Member.Permissions.HasPermission(DiscordPermission.ManageGuild))
         {
-            await ctx.RespondAsync("❌ You need the **Manage Server** permission to use this command.");
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("You need the **Manage Server** permission to use this command."))
+                .AsEphemeral());
             return false;
         }
 
