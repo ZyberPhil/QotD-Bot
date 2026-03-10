@@ -16,8 +16,7 @@ namespace QotD.Bot.Commands;
 /// Slash command for administrators to schedule a new Question of the Day.
 /// Usage: /add-question date:2026-03-07 text:What is your favourite IDE?
 /// </summary>
-[Command("add-question")]
-[Description("Schedule a new Question of the Day for a specific date (Admin only).")]
+[Command("qotd")]
 public sealed class AddQuestionCommand
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -29,7 +28,8 @@ public sealed class AddQuestionCommand
         _logger = logger;
     }
 
-    [Command("add-question")]
+    [Command("add")]
+    [Description("Schedule a new Question of the Day for a specific date (Admin only).")]
     public async ValueTask ExecuteAsync(
         CommandContext ctx,
 

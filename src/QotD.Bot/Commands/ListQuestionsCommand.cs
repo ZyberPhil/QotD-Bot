@@ -14,8 +14,7 @@ namespace QotD.Bot.Commands;
 /// Slash command that lists all upcoming (unposted) questions (Admin only).
 /// Usage: /list-questions
 /// </summary>
-[Command("list-questions")]
-[Description("List all upcoming unposted Questions of the Day (Admin only).")]
+[Command("qotd")]
 public sealed class ListQuestionsCommand
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -25,7 +24,8 @@ public sealed class ListQuestionsCommand
         _scopeFactory = scopeFactory;
     }
 
-    [Command("list-questions")]
+    [Command("list")]
+    [Description("List all upcoming unposted Questions of the Day (Admin only).")]
     public async ValueTask ExecuteAsync(CommandContext ctx)
     {
         // Require ManageGuild permission (admin guard)
