@@ -77,6 +77,7 @@ try
                 extension.AddCommands<AddQuestionCommand>();
                 extension.AddCommands<ListQuestionsCommand>();
                 extension.AddCommands<ConfigCommand>();
+                extension.AddCommands<InvestigateCommand>();
             })
             .Build();
     });
