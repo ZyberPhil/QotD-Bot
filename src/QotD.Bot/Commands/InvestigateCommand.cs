@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using DSharpPlus;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
@@ -19,7 +20,7 @@ public sealed class InvestigateCommand
     {
         // Falls das Subjekt nicht im Server ist, DiscordMember abrufen falls möglich
         var member = user as DiscordMember;
-        if (member == null && context.Guild != null)
+        if (member is null && context.Guild is not null)
         {
             try
             {
@@ -37,7 +38,7 @@ public sealed class InvestigateCommand
             .AddField("🆔 Subjekt-ID", user.Id.ToString(), true)
             .AddField("📅 Account erstellt", user.CreationTimestamp.ToString("d"), true);
 
-        if (member != null)
+        if (member is not null)
         {
             embed.AddField("📥 Beigetreten", member.JoinedAt.ToString("d"), true)
                  .AddField("👤 Rollen", member.Roles.Any() ? string.Join(", ", member.Roles.Select(r => r.Name)) : "Keine", false);
@@ -47,7 +48,8 @@ public sealed class InvestigateCommand
             embed.AddField("📊 Status", "Subjekt befindet sich außerhalb des direkten Zugriffs.", false);
         }
 
-        embed.WithAnalyticalFooter((int)context.Client.Ping);
+        // TODO: Find correct property for latency in DSharpPlus v5 nightly (Ping/GatewayPing/HeartbeatLatency not found)
+        embed.WithAnalyticalFooter(0);
 
         await context.RespondAsync(embed);
     }

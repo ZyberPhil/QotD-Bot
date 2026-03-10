@@ -88,7 +88,7 @@ public sealed class ConfigCommand
 
             var result = await interactivity.WaitForMessageAsync(
                 x => {
-                    var match = x.Author.Id == ctx.User.Id && x.ChannelId == ctx.Channel.Id;
+                    var match = x.Author?.Id == ctx.User.Id && x.ChannelId == ctx.Channel.Id;
                     if (match) _logger.LogInformation("Message match detected: {Content}", x.Content);
                     return match;
                 },
