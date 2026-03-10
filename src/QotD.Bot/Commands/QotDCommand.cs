@@ -125,6 +125,9 @@ public sealed class QotDCommand
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
     }
+
+    [Command("config")]
+    [Description("Configure QotD settings (Admin only).")]
     public sealed class ConfigGroup
     {
         private readonly IServiceScopeFactory _scopeFactory;
