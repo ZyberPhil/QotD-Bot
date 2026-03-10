@@ -69,15 +69,14 @@ try
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
                 
                 // Also share logging and options if needed by commands
-                services.AddSingleton(s.GetRequiredService<ILogger<ConfigCommand>>());
+                services.AddSingleton(s.GetRequiredService<ILogger<QotDCommand>>());
             })
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {
-                extension.AddCommands<AddQuestionCommand>();
-                extension.AddCommands<ListQuestionsCommand>();
-                extension.AddCommands<ConfigCommand>();
+                extension.AddCommands<QotDCommand>();
                 extension.AddCommands<InvestigateCommand>();
+                extension.AddCommands<HelpCommand>();
             })
             .Build();
     });
