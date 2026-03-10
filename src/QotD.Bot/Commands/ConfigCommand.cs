@@ -77,21 +77,32 @@ public sealed class ConfigCommand
     {
         if (!await CheckPermissionsAsync(ctx)) return;
 
+        _logger.LogInformation("Starting template capture for user {User} in channel {Channel}", ctx.User.Id, ctx.Channel.Id);
+
         await ctx.RespondAsync("📝 Bitte sende jetzt die Nachricht, die als Template dienen soll. Du kannst Zeilenumbrüche und Designs verwenden.\nVerfügbare Platzhalter: `{message}`, `{date}`, `{id}`.\n*(Du hast 5 Minuten Zeit)*");
-
-        var interactivity = ctx.ServiceProvider.GetRequiredService<InteractivityExtension>();
-        var result = await interactivity.WaitForMessageAsync(
-            x => x.Author.Id == ctx.User.Id && x.ChannelId == ctx.Channel.Id,
-            TimeSpan.FromMinutes(5));
-
-        if (result.TimedOut)
-        {
-            await ctx.FollowupAsync("❌ Zeitüberschreitung. Die Template-Konfiguration wurde abgebrochen.");
-            return;
-        }
 
         try
         {
+            var interactivity = ctx.ServiceProvider.GetRequiredService<InteractivityExtension>();
+            _logger.LogInformation("Interactivity extension resolved. Waiting for message...");
+
+            var result = await interactivity.WaitForMessageAsync(
+                x => {
+                    var match = x.Author.Id == ctx.User.Id && x.ChannelId == ctx.Channel.Id;
+                    if (match) _logger.LogInformation("Message match detected: {Content}", x.Content);
+                    return match;
+                },
+                TimeSpan.FromMinutes(5));
+
+            if (result.TimedOut)
+            {
+                _logger.LogWarning("Template capture timed out for user {User}", ctx.User.Id);
+                await ctx.FollowupAsync("❌ Zeitüberschreitung. Die Template-Konfiguration wurde abgebrochen. Hast du den 'Message Content Intent' im Discord Developer Portal wirklich aktiviert?");
+                return;
+            }
+
+            _logger.LogInformation("Template captured successfully: {Length} characters", result.Result.Content.Length);
+
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -104,7 +115,7 @@ public sealed class ConfigCommand
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save template via interactivity.");
-            await ctx.FollowupAsync("❌ Fehler beim Speichern des Templates.");
+            await ctx.FollowupAsync("❌ Ein interner Fehler ist aufgetreten.");
         }
     }
 
