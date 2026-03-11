@@ -255,6 +255,68 @@ public sealed class QotDCommand
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateSuccessEmbed("Template zurückgesetzt.", "✅ Reset")).AsEphemeral());
         }
+
+        [Command("test")]
+        [Description("Triggers a test post using the current template and creates a thread.")]
+        public async ValueTask TestPostAsync(CommandContext ctx)
+        {
+            if (!await CheckPermissionsAsync(ctx)) return;
+
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+
+            if (config.ChannelId == 0)
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Es wurde kein Kanal für QotD konfiguriert. Nutze `/qotd config channel`."))
+                    .AsEphemeral());
+                return;
+            }
+
+            var channel = await ctx.Client.GetChannelAsync(config.ChannelId);
+            var dateOnly = DateOnly.FromDateTime(DateTime.Now);
+            var testQuestion = "Dies ist eine Test-Frage, um das Template und die Thread-Erstellung zu prüfen.";
+            
+            DiscordMessage message;
+
+            if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
+            {
+                var formattedMessage = config.MessageTemplate
+                    .Replace("{message}", testQuestion)
+                    .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
+                    .Replace("{id}", "999")
+                    + "\n\n> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**";
+
+                message = await channel.SendMessageAsync(formattedMessage);
+            }
+            else
+            {
+                var embed = new DiscordEmbedBuilder()
+                    .WithTitle("❓ Test: Frage des Tages")
+                    .WithDescription($"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
+                    .WithColor(new DiscordColor("#000000"))
+                    .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
+                    .WithTimestamp(DateTimeOffset.UtcNow)
+                    .Build();
+
+                message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+            }
+
+            // Manuelle Thread-Erstellung (analog zum QotDBackgroundService)
+            var currentMember = await channel.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
+            var permissions = channel.PermissionsFor(currentMember);
+
+            if (permissions.HasPermission(DiscordPermission.CreatePublicThreads))
+            {
+                var threadName = $"Test-Diskussion - {dateOnly:dd.MM.yyyy}";
+                await message.CreateThreadAsync(threadName, DiscordAutoArchiveDuration.Hour);
+            }
+
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Test-Nachricht wurde in <#{config.ChannelId}> gesendet.", "✅ Test erfolgreich"))
+                .AsEphemeral());
+        }
     }
 
     private static async Task<bool> CheckPermissionsAsync(CommandContext ctx)
