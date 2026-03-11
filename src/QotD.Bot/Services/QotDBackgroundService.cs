@@ -13,25 +13,14 @@ namespace QotD.Bot.Services;
 /// Background service that checks the database every minute to see if any guilds
 /// are due for their "Question of the Day".
 /// </summary>
-public sealed class QotDBackgroundService : BackgroundService
+public sealed class QotDBackgroundService(
+    IServiceScopeFactory scopeFactory,
+    DiscordClient discord,
+    ILogger<QotDBackgroundService> logger) : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly DiscordClient _discord;
-    private readonly ILogger<QotDBackgroundService> _logger;
-
-    public QotDBackgroundService(
-        IServiceScopeFactory scopeFactory,
-        DiscordClient discord,
-        ILogger<QotDBackgroundService> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _discord = discord;
-        _logger = logger;
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("QotD background service (Multi-Guild) started.");
+        logger.LogInformation("QotD background service (Multi-Guild) started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -41,7 +30,7 @@ public sealed class QotDBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while processing guild QotD schedules.");
+                logger.LogError(ex, "Error while processing guild QotD schedules.");
             }
 
             // Sleep until the next full minute
@@ -52,12 +41,12 @@ public sealed class QotDBackgroundService : BackgroundService
             await Task.Delay(delay, stoppingToken);
         }
 
-        _logger.LogInformation("QotD background service stopped.");
+        logger.LogInformation("QotD background service stopped.");
     }
 
     private async Task ProcessGuildsAsync(CancellationToken ct)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var configs = await db.GuildConfigs.ToListAsync(ct);
@@ -89,7 +78,7 @@ public sealed class QotDBackgroundService : BackgroundService
 
         if (question == null)
         {
-             _logger.LogWarning("No question scheduled for {Date} (Guild {GuildId}).", dateOnly, config.GuildId);
+             logger.LogWarning("No question scheduled for {Date} (Guild {GuildId}).", dateOnly, config.GuildId);
              return;
         }
 
@@ -99,31 +88,37 @@ public sealed class QotDBackgroundService : BackgroundService
 
         try
         {
-            _logger.LogInformation("Posting QotD to Guild {GuildId}, Channel {ChannelId}...", config.GuildId, config.ChannelId);
+            logger.LogInformation("Posting QotD to Guild {GuildId}, Channel {ChannelId}...", config.GuildId, config.ChannelId);
             
-            var channel = await _discord.GetChannelAsync(config.ChannelId);
+            var channel = await discord.GetChannelAsync(config.ChannelId);
+            DiscordMessage? message;
 
             if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
             {
                 var formattedMessage = config.MessageTemplate
                     .Replace("{message}", question.QuestionText)
                     .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
-                    .Replace("{id}", question.Id.ToString());
+                    .Replace("{id}", question.Id.ToString())
+                    + "\n\n> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**";
 
-                await channel.SendMessageAsync(formattedMessage);
+                message = await channel.SendMessageAsync(formattedMessage);
             }
             else
             {
+                // Note: Using CozyCove styling for QotD embeds
                 var embed = new DiscordEmbedBuilder()
-                    .WithTitle("❓ Question of the Day")
-                    .WithDescription(question.QuestionText)
-                    .WithColor(new DiscordColor("#5865F2"))
-                    .WithFooter($"Question #{question.Id} · {dateOnly:dddd, MMMM d, yyyy}")
+                    .WithTitle("❓ Frage des Tages / Question of the Day")
+                    .WithDescription($"{question.QuestionText}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
+                    .WithColor(new DiscordColor("#000000")) // CozyBlack style
+                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
                     .WithTimestamp(DateTimeOffset.UtcNow)
                     .Build();
 
-                await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+                message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
             }
+
+            // 3. Create Thread immediately after sending
+            await TryCreateThreadAsync(channel, message, dateOnly);
 
             // Record in history
             db.GuildHistories.Add(new GuildHistory 
@@ -136,7 +131,48 @@ public sealed class QotDBackgroundService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to post QotD for Guild {GuildId}.", config.GuildId);
+            logger.LogError(ex, "Failed to post QotD for Guild {GuildId}.", config.GuildId);
+        }
+    }
+
+    private async Task TryCreateThreadAsync(DiscordChannel channel, DiscordMessage? message, DateOnly date)
+    {
+        if (message == null) return;
+
+        try
+        {
+            // Permission Check: Ensure the bot has permission to create public threads.
+            // DSharpPlus v5 uses robust permission checks via the channel's effective permissions.
+            var currentMember = await channel.Guild.GetMemberAsync(discord.CurrentUser.Id);
+            var permissions = channel.PermissionsFor(currentMember);
+
+            if (!permissions.HasPermission(DiscordPermission.CreatePublicThreads))
+            {
+                logger.LogWarning("Missing 'CreatePublicThreads' permission in channel '{ChannelName}' ({ChannelId}) on Guild {GuildId}.", 
+                    channel.Name, channel.Id, channel.Guild.Id);
+                return;
+            }
+
+            // naming the thread dynamically including the date for context.
+            var threadName = $"QotD Answers - {date:dd.MM.yyyy}";
+            
+            // Sidebar-Optimierung (UX): AutoArchiveDuration.Hour (60 minutes).
+            // DSharpPlus v5: message.CreateThreadAsync(string name, AutoArchiveDuration archiveDuration)
+            // This is crucial for 'Sidebar Hygiene' in Discord. 
+            // By setting the archive duration to 1 hour, inactive QotD threads are 
+            // archived quickly, preventing the channel's sidebar from becoming cluttered 
+            // with dozens of old discussion threads while still being accessible to those 
+            // actively engaging.
+            await message.CreateThreadAsync(threadName, DiscordAutoArchiveDuration.Hour);
+            
+            logger.LogInformation("Thread '{ThreadName}' successfully created for QotD in channel {ChannelId}.", 
+                threadName, channel.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to create thread for QotD message {MessageId} in channel {ChannelId}.", 
+                message.Id, channel.Id);
         }
     }
 }
+
