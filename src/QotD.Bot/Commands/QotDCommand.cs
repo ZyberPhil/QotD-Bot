@@ -275,32 +275,56 @@ public sealed class QotDCommand
             }
 
             var channel = await ctx.Client.GetChannelAsync(config.ChannelId);
+
+            // Robust Permission Check for the bot in the target channel
+            var botMember = await channel.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
+            var botPermissions = channel.PermissionsFor(botMember);
+
+            if (!botPermissions.HasPermission(DiscordPermission.SendMessages))
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Ich habe keine Berechtigung, Nachrichten in <#{config.ChannelId}> zu senden. Bitte prüfe meine Rollen und Kanal-Berechtigungen."))
+                    .AsEphemeral());
+                return;
+            }
+
             var dateOnly = DateOnly.FromDateTime(DateTime.Now);
             var testQuestion = "Dies ist eine Test-Frage, um das Template und die Thread-Erstellung zu prüfen.";
             
             DiscordMessage message;
 
-            if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
+            try
             {
-                var formattedMessage = config.MessageTemplate
-                    .Replace("{message}", testQuestion)
-                    .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
-                    .Replace("{id}", "999")
-                    + "\n\n> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**";
+                if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
+                {
+                    var formattedMessage = config.MessageTemplate
+                        .Replace("{message}", testQuestion)
+                        .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
+                        .Replace("{id}", "999")
+                        + "\n\n> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**";
 
-                message = await channel.SendMessageAsync(formattedMessage);
+                    message = await channel.SendMessageAsync(formattedMessage);
+                }
+                else
+                {
+                    var embed = new DiscordEmbedBuilder()
+                        .WithTitle("❓ Test: Frage des Tages")
+                        .WithDescription($"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
+                        .WithColor(new DiscordColor("#000000"))
+                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
+                        .WithTimestamp(DateTimeOffset.UtcNow)
+                        .Build();
+
+                    message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+                }
             }
-            else
+            catch (DSharpPlus.Exceptions.DiscordException ex)
             {
-                var embed = new DiscordEmbedBuilder()
-                    .WithTitle("❓ Test: Frage des Tages")
-                    .WithDescription($"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
-                    .WithColor(new DiscordColor("#000000"))
-                    .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
-                    .WithTimestamp(DateTimeOffset.UtcNow)
-                    .Build();
-
-                message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+                _logger.LogError(ex, "Failed to send test message to channel {ChannelId}.", config.ChannelId);
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Discord API Fehler: {ex.Message} (Stelle sicher, dass ich den Kanal sehen und darin schreiben darf)."))
+                    .AsEphemeral());
+                return;
             }
 
             // Manuelle Thread-Erstellung (analog zum QotDBackgroundService)
