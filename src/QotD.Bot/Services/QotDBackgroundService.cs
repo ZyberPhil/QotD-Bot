@@ -6,6 +6,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Services;
+using QotD.Bot.UI;
+
 
 namespace QotD.Bot.Services;
 
@@ -93,9 +96,7 @@ public sealed class QotDBackgroundService(
             var channel = await discord.GetChannelAsync(config.ChannelId);
             DiscordMessage? message;
 
-            var embedBuilder = new DiscordEmbedBuilder()
-                .WithColor(new DiscordColor("#7289DA"))
-                .WithTimestamp(DateTimeOffset.UtcNow);
+            DiscordEmbedBuilder embedBuilder;
 
             if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
             {
@@ -104,18 +105,15 @@ public sealed class QotDBackgroundService(
                     .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
                     .Replace("{id}", question.Id.ToString());
 
-                embedBuilder
-                    .WithTitle("❓ Frage des Tages")
-                    .WithDescription(formattedDescription)
-                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}");
+                embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", formattedDescription);
             }
             else
             {
-                embedBuilder
-                    .WithTitle("❓ Frage des Tages")
-                    .WithDescription($"{question.QuestionText}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
-                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}");
+                embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", $"{question.QuestionText}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*");
             }
+
+            embedBuilder.WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL)
+                        .WithTimestamp(DateTimeOffset.UtcNow);
 
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                 .WithContent("> 🧵 **Die Antworten findet ihr im Thread unter dieser Nachricht!**")

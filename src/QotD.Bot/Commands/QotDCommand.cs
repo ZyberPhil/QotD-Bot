@@ -295,9 +295,7 @@ public sealed class QotDCommand
 
             try
             {
-                var embedBuilder = new DiscordEmbedBuilder()
-                    .WithColor(new DiscordColor("#7289DA"))
-                    .WithTimestamp(DateTimeOffset.UtcNow);
+                DiscordEmbedBuilder embedBuilder;
 
                 if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
                 {
@@ -306,18 +304,15 @@ public sealed class QotDCommand
                         .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
                         .Replace("{id}", "999");
 
-                    embedBuilder
-                        .WithTitle("❓ Frage des Tages")
-                        .WithDescription(formattedDescription)
-                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}");
+                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", formattedDescription);
                 }
                 else
                 {
-                    embedBuilder
-                        .WithTitle("❓ Test: Frage des Tages")
-                        .WithDescription($"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
-                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}");
+                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Test: Frage des Tages", $"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*");
                 }
+
+                embedBuilder.WithFooter($"Beitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL)
+                            .WithTimestamp(DateTimeOffset.UtcNow);
 
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                     .WithContent("> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**")
