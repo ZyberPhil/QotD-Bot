@@ -126,6 +126,152 @@ public sealed class QotDCommand
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
     }
 
+    [Command("edit")]
+    [Description("Edit a scheduled question (Admin only).")]
+    public async ValueTask EditAsync(
+        CommandContext ctx,
+        [Description("ID of the question to edit (#123)")] [SlashAutoCompleteProvider(typeof(QuestionIdAutoCompleteProvider))] string id,
+        [Description("New question text (optional).")] string? text = null,
+        [Description("New date (YYYY-MM-DD, optional).")] [SlashAutoCompleteProvider(typeof(DateAutoCompleteProvider))] string? date = null)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(date))
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("At least one parameter (text or date) must be provided."))
+                .AsEphemeral());
+            return;
+        }
+
+        if (!int.TryParse(id, out var questionId))
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid Question ID format."))
+                .AsEphemeral());
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var question = await db.Questions.FirstOrDefaultAsync(q => q.Id == questionId);
+        if (question == null)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
+                .AsEphemeral());
+            return;
+        }
+
+        if (question.Posted)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Already posted questions cannot be edited."))
+                .AsEphemeral());
+            return;
+        }
+
+        var sb = new StringBuilder();
+        if (text != null)
+        {
+            if (text.Length > 2000)
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
+                    .AsEphemeral());
+                return;
+            }
+            sb.AppendLine($"- **Text**: `{question.QuestionText}` → `{text}`");
+            question.QuestionText = text;
+        }
+
+        if (date != null)
+        {
+            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var newDate))
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`."))
+                    .AsEphemeral());
+                return;
+            }
+
+            if (newDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Cannot move a question to a past date."))
+                    .AsEphemeral());
+                return;
+            }
+
+            var conflicting = await db.Questions.AsNoTracking().FirstOrDefaultAsync(q => q.ScheduledFor == newDate && q.Id != questionId);
+            if (conflicting != null)
+            {
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Conflict: Another question is already scheduled for **{newDate:yyyy-MM-dd}**:\n*\"{conflicting.QuestionText}\"*"))
+                    .AsEphemeral());
+                return;
+            }
+
+            sb.AppendLine($"- **Date**: `{question.ScheduledFor:yyyy-MM-dd}` → `{newDate:yyyy-MM-dd}`");
+            question.ScheduledFor = newDate;
+        }
+
+        await db.SaveChangesAsync();
+
+        var embed = CozyCoveUI.CreateSuccessEmbed(sb.ToString(), $"✅ Question #{questionId} Updated")
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+    }
+
+    [Command("delete")]
+    [Description("Delete a scheduled question (Admin only).")]
+    public async ValueTask DeleteAsync(
+        CommandContext ctx,
+        [Description("ID of the question to delete (#123)")] [SlashAutoCompleteProvider(typeof(QuestionIdAutoCompleteProvider))] string id)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        if (!int.TryParse(id, out var questionId))
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid Question ID format."))
+                .AsEphemeral());
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var question = await db.Questions.FirstOrDefaultAsync(q => q.Id == questionId);
+        if (question == null)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
+                .AsEphemeral());
+            return;
+        }
+
+        if (question.Posted)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Already posted questions cannot be deleted."))
+                .AsEphemeral());
+            return;
+        }
+
+        var textPreview = question.QuestionText[..Math.Min(100, question.QuestionText.Length)] + (question.QuestionText.Length > 100 ? "..." : "");
+        
+        db.Questions.Remove(question);
+        await db.SaveChangesAsync();
+
+        var embed = CozyCoveUI.CreateSuccessEmbed($"Deleted Question `#{questionId}` scheduled for `{question.ScheduledFor:yyyy-MM-dd}`.\n\n**Was:** *\"{textPreview}\"*", "🗑️ Question Deleted")
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+    }
+
     [Command("config")]
     [Description("Configure QotD settings (Admin only).")]
     public sealed class ConfigGroup
@@ -368,6 +514,27 @@ public sealed class QotDCommand
             db.GuildConfigs.Add(config);
         }
         return config;
+    }
+}
+
+public sealed class QuestionIdAutoCompleteProvider(IServiceScopeFactory scopeFactory) : IAutoCompleteProvider
+{
+    public async ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext ctx)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var questions = await db.Questions
+            .AsNoTracking()
+            .Where(q => !q.Posted && q.ScheduledFor >= today)
+            .OrderBy(q => q.ScheduledFor)
+            .Take(25)
+            .ToListAsync();
+
+        return questions.Select(q => new DiscordAutoCompleteChoice(
+            $"{q.ScheduledFor:yyyy-MM-dd} (#{q.Id}): {q.QuestionText[..Math.Min(50, q.QuestionText.Length)]}...",
+            q.Id.ToString()));
     }
 }
 
