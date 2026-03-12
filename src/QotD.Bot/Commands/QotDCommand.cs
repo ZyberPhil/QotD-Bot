@@ -289,7 +289,7 @@ public sealed class QotDCommand
             }
 
             var dateOnly = DateOnly.FromDateTime(DateTime.Now);
-            var testQuestion = "Dies ist eine Test-Frage, um das Template und die Thread-Erstellung zu prüfen.";
+            var testQuestion = "Dies ist eine Test-Frage, um das Template und die Thread Erstellung zu prüfen.";
             
             DiscordMessage message;
 
