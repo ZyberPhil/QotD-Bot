@@ -295,28 +295,33 @@ public sealed class QotDCommand
 
             try
             {
+                var embedBuilder = new DiscordEmbedBuilder()
+                    .WithColor(new DiscordColor("#7289DA"))
+                    .WithTimestamp(DateTimeOffset.UtcNow);
+
                 if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
                 {
-                    var formattedMessage = config.MessageTemplate
+                    var formattedDescription = config.MessageTemplate
                         .Replace("{message}", testQuestion)
                         .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
-                        .Replace("{id}", "999")
-                        + "\n\n> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**";
+                        .Replace("{id}", "999");
 
-                    message = await channel.SendMessageAsync(formattedMessage);
+                    embedBuilder
+                        .WithTitle("❓ Frage des Tages")
+                        .WithDescription(formattedDescription)
+                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}");
                 }
                 else
                 {
-                    var embed = new DiscordEmbedBuilder()
+                    embedBuilder
                         .WithTitle("❓ Test: Frage des Tages")
                         .WithDescription($"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
-                        .WithColor(new DiscordColor("#000000"))
-                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
-                        .WithTimestamp(DateTimeOffset.UtcNow)
-                        .Build();
-
-                    message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+                        .WithFooter($"Testbeitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}");
                 }
+
+                message = await channel.SendMessageAsync(new DiscordMessageBuilder()
+                    .WithContent("> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**")
+                    .AddEmbed(embedBuilder.Build()));
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {

@@ -93,29 +93,33 @@ public sealed class QotDBackgroundService(
             var channel = await discord.GetChannelAsync(config.ChannelId);
             DiscordMessage? message;
 
+            var embedBuilder = new DiscordEmbedBuilder()
+                .WithColor(new DiscordColor("#7289DA"))
+                .WithTimestamp(DateTimeOffset.UtcNow);
+
             if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
             {
-                var formattedMessage = config.MessageTemplate
+                var formattedDescription = config.MessageTemplate
                     .Replace("{message}", question.QuestionText)
                     .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
-                    .Replace("{id}", question.Id.ToString())
-                    + "\n\n> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*";
+                    .Replace("{id}", question.Id.ToString());
 
-                message = await channel.SendMessageAsync(formattedMessage);
+                embedBuilder
+                    .WithTitle("❓ Frage des Tages")
+                    .WithDescription(formattedDescription)
+                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}");
             }
             else
             {
-                // Note: Using CozyCove styling for QotD embeds
-                var embed = new DiscordEmbedBuilder()
-                    .WithTitle("❓ Frage des Tages / Question of the Day")
+                embedBuilder
+                    .WithTitle("❓ Frage des Tages")
                     .WithDescription($"{question.QuestionText}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*")
-                    .WithColor(new DiscordColor("#000000")) // CozyBlack style
-                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy} · Antworten im Thread!")
-                    .WithTimestamp(DateTimeOffset.UtcNow)
-                    .Build();
-
-                message = await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+                    .WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}");
             }
+
+            message = await channel.SendMessageAsync(new DiscordMessageBuilder()
+                .WithContent("> 🧵 **Die Antworten findet ihr im Thread unter dieser Nachricht!**")
+                .AddEmbed(embedBuilder.Build()));
 
             // 3. Create Thread immediately after sending
             await TryCreateThreadAsync(channel, message, dateOnly);
