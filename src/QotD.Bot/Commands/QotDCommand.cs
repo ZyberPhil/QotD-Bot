@@ -312,7 +312,8 @@ public sealed class QotDCommand
                     embedBuilder.AddField("Diskussion", "*Gerne kannst du deine Gedanken im Thread unten teilen!*");
                 }
 
-                embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
+                embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL)
+                            .WithTimestamp(DateTimeOffset.UtcNow);
 
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                     .WithContent("> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**")
