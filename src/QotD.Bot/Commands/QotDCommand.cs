@@ -315,7 +315,7 @@ public sealed class QotDCommand
                 embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                    .WithContent("> 🧵 **Die Diskussion findet im Thread unter dieser Nachricht statt!**")
+                    .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*")
                     .AddEmbed(embedBuilder.Build()));
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)

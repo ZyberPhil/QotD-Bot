@@ -113,11 +113,10 @@ public sealed class QotDBackgroundService(
                 embedBuilder.AddField("Diskussion", "*Gerne kannst du deine Gedanken im Thread unten teilen!*");
             }
 
-            embedBuilder.WithFooter($"Beitrag #{question.Id} · {dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL)
-                        .WithTimestamp(DateTimeOffset.UtcNow);
+            embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                .WithContent("> 🧵 **Die Antworten findet ihr im Thread unter dieser Nachricht!**")
+                .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*")
                 .AddEmbed(embedBuilder.Build()));
 
             // 3. Create Thread immediately after sending
