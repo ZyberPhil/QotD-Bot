@@ -29,6 +29,44 @@ public sealed class QotDCommand
         _logger = logger;
     }
 
+    [Command("list")]
+    [Description("List all upcoming unposted Questions of the Day (Admin only).")]
+    public async ValueTask ListAsync(CommandContext ctx)
+    {
+        if (!await CheckPermissionsAsync(ctx)) return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var questions = await db.Questions
+            .AsNoTracking()
+            .Where(q => !q.Posted && q.ScheduledFor >= today)
+            .OrderBy(q => q.ScheduledFor)
+            .Take(25)
+            .ToListAsync();
+
+        if (questions.Count == 0)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateInfoEmbed("No upcoming questions are scheduled.", "📭 Queue Empty"))
+                .AsEphemeral());
+            return;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var q in questions)
+        {
+            sb.AppendLine($"> **{q.ScheduledFor:yyyy-MM-dd}** (`#{q.Id}`) — {q.QuestionText[..Math.Min(80, q.QuestionText.Length)]}{(q.QuestionText.Length > 80 ? "…" : "")}");
+        }
+
+        var embed = CozyCoveUI.CreateBaseEmbed($"📅 Upcoming Questions ({questions.Count})", sb.ToString())
+            .WithFooter("Showing next 25 unposted questions")
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+    }
+
     [Command("add")]
     [Description("Schedule a new Question of the Day for a specific date (Admin only).")]
     public async ValueTask AddAsync(
@@ -83,44 +121,6 @@ public sealed class QotDCommand
         var embed = CozyCoveUI.CreateSuccessEmbed($"**{text}**", "✅ Question Scheduled")
             .AddField("Date", scheduledFor.ToString("dddd, MMMM d, yyyy"), inline: true)
             .AddField("Question ID", $"#{question.Id}", inline: true)
-            .WithTimestamp(DateTimeOffset.UtcNow);
-
-        await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
-    }
-
-    [Command("list")]
-    [Description("List all upcoming unposted Questions of the Day (Admin only).")]
-    public async ValueTask ListAsync(CommandContext ctx)
-    {
-        if (!await CheckPermissionsAsync(ctx)) return;
-
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var questions = await db.Questions
-            .AsNoTracking()
-            .Where(q => !q.Posted && q.ScheduledFor >= today)
-            .OrderBy(q => q.ScheduledFor)
-            .Take(25)
-            .ToListAsync();
-
-        if (questions.Count == 0)
-        {
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateInfoEmbed("No upcoming questions are scheduled.", "📭 Queue Empty"))
-                .AsEphemeral());
-            return;
-        }
-
-        var sb = new StringBuilder();
-        foreach (var q in questions)
-        {
-            sb.AppendLine($"> **{q.ScheduledFor:yyyy-MM-dd}** (`#{q.Id}`) — {q.QuestionText[..Math.Min(80, q.QuestionText.Length)]}{(q.QuestionText.Length > 80 ? "…" : "")}");
-        }
-
-        var embed = CozyCoveUI.CreateBaseEmbed($"📅 Upcoming Questions ({questions.Count})", sb.ToString())
-            .WithFooter("Showing next 25 unposted questions")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
