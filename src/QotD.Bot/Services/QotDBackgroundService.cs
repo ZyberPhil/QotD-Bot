@@ -99,7 +99,7 @@ public sealed class QotDBackgroundService(
                     .Replace("{message}", question.QuestionText)
                     .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
                     .Replace("{id}", question.Id.ToString())
-                    + "\n\n> 🧵 *Die Diskussion findet im Thread unter dieser Nachricht statt!*";
+                    + "\n\n> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*";
 
                 message = await channel.SendMessageAsync(formattedMessage);
             }
