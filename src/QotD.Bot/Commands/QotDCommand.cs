@@ -308,7 +308,8 @@ public sealed class QotDCommand
                 }
                 else
                 {
-                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Test: Frage des Tages", $"{testQuestion}\n\n*Gerne kannst du deine Gedanken im Thread unten teilen!*");
+                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Test: Frage des Tages", testQuestion);
+                    embedBuilder.AddField("Diskussion", "*Gerne kannst du deine Gedanken im Thread unten teilen!*");
                 }
 
                 embedBuilder.WithFooter($"Beitrag #999 · {dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL)
