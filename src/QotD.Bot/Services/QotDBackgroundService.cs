@@ -116,8 +116,8 @@ public sealed class QotDBackgroundService(
             embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*")
-                .AddEmbed(embedBuilder.Build()));
+                .AddEmbed(embedBuilder.Build())
+                .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*"));
 
             // 3. Create Thread immediately after sending
             await TryCreateThreadAsync(channel, message, dateOnly);
