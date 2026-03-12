@@ -18,5 +18,7 @@ public sealed class GuildConfig
 
     public string? MessageTemplate { get; set; }
 
+    public ulong? PingRoleId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

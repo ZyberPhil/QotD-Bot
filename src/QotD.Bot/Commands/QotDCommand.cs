@@ -331,6 +331,30 @@ public sealed class QotDCommand
                 .AsEphemeral());
         }
 
+        [Command("role")]
+        [Description("Set or clear the role to ping when a question is posted.")]
+        public async ValueTask SetPingRoleAsync(
+            CommandContext ctx, 
+            [Description("The role to ping (leave empty to disable)")] DiscordRole? role = null)
+        {
+            if (!await CheckPermissionsAsync(ctx)) return;
+
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = await GetOrCreateConfigAsync(db, ctx.Guild!.Id);
+            
+            config.PingRoleId = role?.Id;
+            await db.SaveChangesAsync();
+
+            var message = role != null 
+                ? $"Die Rolle {role.Mention} wird nun bei neuen Fragen gepinnt." 
+                : "Es wird keine Rolle mehr gepinnt.";
+
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(CozyCoveUI.CreateSuccessEmbed(message, "✅ Ping-Rolle aktualisiert"))
+                .AsEphemeral());
+        }
+
         [Command("template")]
         [Description("Set a custom message template.")]
         public async ValueTask SetTemplateAsync(CommandContext ctx)
@@ -462,7 +486,8 @@ public sealed class QotDCommand
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                     .AddEmbed(embedBuilder.Build()));
                 
-                await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
+                var pingText = config.PingRoleId.HasValue ? $"<@&{config.PingRoleId}> " : "";
+                await channel.SendMessageAsync($"{pingText}🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
