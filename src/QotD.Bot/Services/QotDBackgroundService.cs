@@ -114,12 +114,19 @@ public sealed class QotDBackgroundService(
 
             embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
-            var pingText = config.PingRoleId.HasValue ? $"\n||<@&{config.PingRoleId}>||" : "";
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                .WithContent($"> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}")
                 .AddEmbed(embedBuilder.Build()));
 
-            // 3. Create Thread immediately after sending
+            await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
+
+            // 3. Ghost ping to ensure notification
+            if (config.PingRoleId.HasValue)
+            {
+                var ghostPing = await channel.SendMessageAsync($"<@&{config.PingRoleId}>");
+                await ghostPing.DeleteAsync();
+            }
+
+            // 4. Create Thread immediately after sending
             await TryCreateThreadAsync(channel, message, dateOnly);
 
             // Record in history

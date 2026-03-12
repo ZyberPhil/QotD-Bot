@@ -483,10 +483,17 @@ public sealed class QotDCommand
 
                 embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
-                var pingText = config.PingRoleId.HasValue ? $"\n||<@&{config.PingRoleId}>||" : "";
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                    .WithContent($"> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}")
                     .AddEmbed(embedBuilder.Build()));
+                
+                await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
+
+                // Ghost ping to ensure notification
+                if (config.PingRoleId.HasValue)
+                {
+                    var ghostPing = await channel.SendMessageAsync($"<@&{config.PingRoleId}>");
+                    await ghostPing.DeleteAsync();
+                }
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
