@@ -442,7 +442,6 @@ public sealed class QotDCommand
             try
             {
                 DiscordEmbedBuilder embedBuilder;
-                bool TrueFalse = false;
 
                 if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
                 {
@@ -463,7 +462,7 @@ public sealed class QotDCommand
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                     .AddEmbed(embedBuilder.Build()));
                 
-                await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*") && TrueFalse == true;
+                await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
@@ -478,7 +477,7 @@ public sealed class QotDCommand
             var currentMember = await channel.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
             var permissions = channel.PermissionsFor(currentMember);
 
-            if (permissions.HasPermission(DiscordPermission.CreatePublicThreads) && TrueFalse == true)
+            if (permissions.HasPermission(DiscordPermission.CreatePublicThreads))
             {
                 var threadName = $"Test-Diskussion - {dateOnly:dd.MM.yyyy}";
                 await message.CreateThreadAsync(threadName, DiscordAutoArchiveDuration.Hour);
