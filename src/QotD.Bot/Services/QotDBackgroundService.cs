@@ -117,7 +117,7 @@ public sealed class QotDBackgroundService(
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                 .AddEmbed(embedBuilder.Build()));
 
-            await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
+            await channel.SendMessageAsync("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
 
             // 3. Ghost ping to ensure notification
             if (config.PingRoleId.HasValue)
