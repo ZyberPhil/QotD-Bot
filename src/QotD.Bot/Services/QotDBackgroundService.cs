@@ -110,14 +110,14 @@ public sealed class QotDBackgroundService(
             else
             {
                 embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", question.QuestionText);
-                embedBuilder.AddField("Diskussion", "*Gerne kannst du deine Gedanken im Thread unten teilen!*");
             }
 
             embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                .AddEmbed(embedBuilder.Build())
-                .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*"));
+                .AddEmbed(embedBuilder.Build()));
+
+            await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
 
             // 3. Create Thread immediately after sending
             await TryCreateThreadAsync(channel, message, dateOnly);

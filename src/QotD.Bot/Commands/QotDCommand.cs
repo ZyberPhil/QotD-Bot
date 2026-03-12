@@ -455,14 +455,14 @@ public sealed class QotDCommand
                 else
                 {
                     embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Test: Frage des Tages", testQuestion);
-                    embedBuilder.AddField("Diskussion", "*Gerne kannst du deine Gedanken im Thread unten teilen!*");
                 }
 
                 embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                    .AddEmbed(embedBuilder.Build())
-                    .WithContent("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*"));
+                    .AddEmbed(embedBuilder.Build()));
+                
+                await channel.SendMessageAsync("🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
