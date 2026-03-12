@@ -486,7 +486,7 @@ public sealed class QotDCommand
                 message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                     .AddEmbed(embedBuilder.Build()));
                 
-                var pingText = config.PingRoleId.HasValue ? $"\n<@&{config.PingRoleId}>" : "";
+                var pingText = config.PingRoleId.HasValue ? $"\n||<@&{config.PingRoleId}>||" : "";
                 await channel.SendMessageAsync($"🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}");
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)

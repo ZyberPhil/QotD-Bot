@@ -117,7 +117,7 @@ public sealed class QotDBackgroundService(
             message = await channel.SendMessageAsync(new DiscordMessageBuilder()
                 .AddEmbed(embedBuilder.Build()));
 
-            var pingText = config.PingRoleId.HasValue ? $"\n<@&{config.PingRoleId}>" : "";
+            var pingText = config.PingRoleId.HasValue ? $"\n||<@&{config.PingRoleId}>||" : "";
             await channel.SendMessageAsync($"🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}");
 
             // 3. Create Thread immediately after sending
