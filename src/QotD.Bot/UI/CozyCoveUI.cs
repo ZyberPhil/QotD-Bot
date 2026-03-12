@@ -9,8 +9,8 @@ namespace QotD.Bot.UI;
 /// </summary>
 public static class CozyCoveUI
 {
-    // "C" Icon - Kann später durch ein spezifisches Logo ersetzt werden
-    public const string COZY_ICON_URL = "./images/cozy-cove.gif"; 
+    // "C" Icon - Muss eine valide HTTP/HTTPS URL sein für Discord
+    public const string COZY_ICON_URL = "https://img.icons8.com/ios-filled/100/ffffff/c.png"; 
     public static readonly DiscordColor CozyBlack = new DiscordColor("#000000");
     public static readonly DiscordColor CozyDarkGray = new DiscordColor("#1A1A1A");
     public static readonly DiscordColor CozySuccessGreen = new DiscordColor("#57F287");
