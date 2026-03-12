@@ -114,11 +114,10 @@ public sealed class QotDBackgroundService(
 
             embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
 
-            message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                .AddEmbed(embedBuilder.Build()));
-
             var pingText = config.PingRoleId.HasValue ? $"\n||<@&{config.PingRoleId}>||" : "";
-            await channel.SendMessageAsync($"🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}");
+            message = await channel.SendMessageAsync(new DiscordMessageBuilder()
+                .WithContent($"> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*{pingText}")
+                .AddEmbed(embedBuilder.Build()));
 
             // 3. Create Thread immediately after sending
             await TryCreateThreadAsync(channel, message, dateOnly);
