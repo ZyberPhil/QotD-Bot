@@ -12,8 +12,10 @@ namespace QotD.Bot.Features.QotD.Services;
 /// Consumed by both <see cref="QotDBackgroundService"/> (scheduled posts) and
 /// <see cref="QotDCommand"/> (manual test posts) so the logic lives in one place.
 /// </summary>
-public sealed class QotDPostingService(DiscordClient discord, ILogger<QotDPostingService> logger)
+public sealed class QotDPostingService(IServiceProvider serviceProvider, ILogger<QotDPostingService> logger)
 {
+    private DiscordClient discord => serviceProvider.GetRequiredService<DiscordClient>();
+
     public async Task PostQuestionAsync(
         DiscordChannel channel,
         string questionText,

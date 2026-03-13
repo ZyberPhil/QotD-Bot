@@ -15,10 +15,12 @@ namespace QotD.Bot.Features.QotD.Services;
 /// </summary>
 public sealed class QotDBackgroundService(
     IServiceScopeFactory scopeFactory,
-    DiscordClient discord,
+    IServiceProvider serviceProvider,
     QotDPostingService postingService,
     ILogger<QotDBackgroundService> logger) : BackgroundService
 {
+    private DiscordClient discord => serviceProvider.GetRequiredService<DiscordClient>();
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("QotD background service started.");
