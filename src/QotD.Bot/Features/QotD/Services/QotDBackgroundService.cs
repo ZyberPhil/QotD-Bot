@@ -72,7 +72,6 @@ public sealed class QotDBackgroundService(
         var dateOnly = DateOnly.FromDateTime(localDate);
 
         var question = await db.Questions
-            .AsNoTracking()
             .FirstOrDefaultAsync(q => q.ScheduledFor == dateOnly, ct);
 
         if (question == null)
@@ -95,6 +94,7 @@ public sealed class QotDBackgroundService(
             await postingService.PostQuestionAsync(
                 channel, question.QuestionText, question.Id.ToString(), config, dateOnly);
 
+            question.Posted = true;
             db.GuildHistories.Add(new GuildHistory
             {
                 GuildId = config.GuildId,
