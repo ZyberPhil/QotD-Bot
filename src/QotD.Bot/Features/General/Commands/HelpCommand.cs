@@ -4,7 +4,7 @@ using QotD.Bot.UI;
 using System.ComponentModel;
 using System.Text;
 
-namespace QotD.Bot.Commands;
+namespace QotD.Bot.Features.General.Commands;
 
 /// <summary>
 /// Command that provides information about the bot and its available commands.

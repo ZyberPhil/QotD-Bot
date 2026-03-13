@@ -3,9 +3,12 @@ using DSharpPlus.Commands;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using Microsoft.EntityFrameworkCore;
-using QotD.Bot.Commands;
 using QotD.Bot.Configuration;
+using QotD.Bot.Core;
 using QotD.Bot.Data;
+using QotD.Bot.Features.General;
+using QotD.Bot.Features.QotD;
+using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Services;
 using Serilog;
 
@@ -18,6 +21,13 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = Host.CreateApplicationBuilder(args);
+
+    // ── Module Infrastructure ──────────────────────────────────────────────────
+    IBotModule[] modules = [
+        new GeneralModule(),
+        new QotDModule(),
+        new TempVoiceModule()
+    ];
 
     // ── Configuration ──────────────────────────────────────────────────────────
     builder.Configuration
@@ -48,6 +58,12 @@ try
             npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
     });
 
+    // ── Register Module Services ───────────────────────────────────────────────
+    foreach (var module in modules)
+    {
+        module.ConfigureServices(builder.Services, builder.Configuration);
+    }
+
     // ── DSharpPlus ─────────────────────────────────────────────────────────────
     var discordToken = builder.Configuration[$"{DiscordSettings.SectionName}:Token"]
         ?? throw new InvalidOperationException("Discord:Token is not configured.");
@@ -67,24 +83,21 @@ try
                 // Share essential singletons from the main host provider
                 services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
-                
-                // Also share logging and options if needed by commands
-                services.AddSingleton(s.GetRequiredService<ILogger<QotDCommand>>());
             })
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {
-                extension.AddCommands<QotDCommand>();
-                extension.AddCommands<InvestigateCommand>();
-                extension.AddCommands<HelpCommand>();
+                foreach (var module in modules)
+                {
+                    module.ConfigureCommands(extension);
+                }
             })
             .Build();
     });
 
-    // ── Background Services ─────────────────────────────────────────────────────
+    // ── Core Services ───────────────────────────────────────────────────────────
     builder.Services.AddSingleton<DiscordBotService>();
     builder.Services.AddHostedService(s => s.GetRequiredService<DiscordBotService>());
-    builder.Services.AddHostedService<QotDBackgroundService>();
 
     var host = builder.Build();
 
@@ -110,3 +123,4 @@ finally
 }
 
 return 0;
+

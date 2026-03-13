@@ -122,6 +122,7 @@ docker compose logs -f qotd-bot
 
 ### Befehle im Discord nutzen
 
-- `/config-qotd channel #mein-kanal`
-- `/config-qotd time 09:00`
-- `/add-question date:2026-03-07 text:Deine Nachricht?`
+- `/qotd config channel #mein-kanal`
+- `/qotd config time 09:00`
+- `/qotd add date:2026-03-07 text:Deine Nachricht?`
+- `/help`

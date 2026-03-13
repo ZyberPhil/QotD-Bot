@@ -5,7 +5,7 @@ using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 using QotD.Bot.UI;
 
-namespace QotD.Bot.Commands;
+namespace QotD.Bot.Features.General.Commands;
 
 /// <summary>
 /// Command to investigate a user, using the Lawliet aesthetic.

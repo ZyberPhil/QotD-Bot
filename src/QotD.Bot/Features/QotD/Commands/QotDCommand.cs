@@ -10,11 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Features.QotD.Services;
 using QotD.Bot.UI;
 using System.ComponentModel;
 using System.Text;
 
-namespace QotD.Bot.Commands;
+namespace QotD.Bot.Features.QotD.Commands;
 
 [Command("qotd")]
 [Description("Manage Question of the Day features.")]
@@ -22,11 +23,13 @@ public sealed class QotDCommand
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<QotDCommand> _logger;
+    private readonly QotDPostingService _postingService;
 
-    public QotDCommand(IServiceScopeFactory scopeFactory, ILogger<QotDCommand> logger)
+    public QotDCommand(IServiceScopeFactory scopeFactory, ILogger<QotDCommand> logger, QotDPostingService postingService)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _postingService = postingService;
     }
 
     [Command("list")]
@@ -278,11 +281,13 @@ public sealed class QotDCommand
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<QotDCommand> _logger;
+        private readonly QotDPostingService _postingService;
 
-        public ConfigGroup(IServiceScopeFactory scopeFactory, ILogger<QotDCommand> logger)
+        public ConfigGroup(IServiceScopeFactory scopeFactory, ILogger<QotDCommand> logger, QotDPostingService postingService)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _postingService = postingService;
         }
 
         [Command("channel")]
@@ -346,7 +351,7 @@ public sealed class QotDCommand
             config.PingRoleId = role?.Id;
             await db.SaveChangesAsync();
 
-            var message = role != null 
+            var message = role is not null 
                 ? $"Die Rolle {role.Mention} wird nun bei neuen Fragen gepinnt." 
                 : "Es wird keine Rolle mehr gepinnt.";
 
@@ -458,42 +463,19 @@ public sealed class QotDCommand
                 return;
             }
 
-            var dateOnly = DateOnly.FromDateTime(DateTime.Now);
-            var testQuestion = "Dies ist eine Test-Frage, um das Template und die Thread Erstellung zu prüfen.";
-            
-            DiscordMessage message;
-
             try
             {
-                DiscordEmbedBuilder embedBuilder;
+                await _postingService.PostQuestionAsync(
+                    channel,
+                    "Dies ist eine Test-Frage, um das Template und die Thread Erstellung zu prüfen.",
+                    "999",
+                    config,
+                    DateOnly.FromDateTime(DateTime.Now),
+                    isTest: true);
 
-                if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
-                {
-                    var formattedDescription = config.MessageTemplate
-                        .Replace("{message}", testQuestion)
-                        .Replace("{date}", dateOnly.ToString("dd.MM.yyyy"))
-                        .Replace("{id}", "999");
-
-                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", formattedDescription);
-                }
-                else
-                {
-                    embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Test: Frage des Tages", testQuestion);
-                }
-
-                embedBuilder.WithFooter($"{dateOnly:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
-
-                message = await channel.SendMessageAsync(new DiscordMessageBuilder()
-                    .AddEmbed(embedBuilder.Build()));
-                
-                await channel.SendMessageAsync("> 🧵 *Die Antworten findet ihr im Thread unter dieser Nachricht!*");
-
-                // Ghost ping to ensure notification
-                if (config.PingRoleId.HasValue)
-                {
-                    var ghostPing = await channel.SendMessageAsync($"<@&{config.PingRoleId}>");
-                    await ghostPing.DeleteAsync();
-                }
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
+                    .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Test-Nachricht wurde in <#{config.ChannelId}> gesendet.", "✅ Test erfolgreich"))
+                    .AsEphemeral());
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
@@ -501,22 +483,7 @@ public sealed class QotDCommand
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
                     .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Discord API Fehler: {ex.Message} (Stelle sicher, dass ich den Kanal sehen und darin schreiben darf)."))
                     .AsEphemeral());
-                return;
             }
-
-            // Manuelle Thread-Erstellung (analog zum QotDBackgroundService)
-            var currentMember = await channel.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
-            var permissions = channel.PermissionsFor(currentMember);
-
-            if (permissions.HasPermission(DiscordPermission.CreatePublicThreads))
-            {
-                var threadName = $"Test-Diskussion - {dateOnly:dd.MM.yyyy}";
-                await message.CreateThreadAsync(threadName, DiscordAutoArchiveDuration.Hour);
-            }
-
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Test-Nachricht wurde in <#{config.ChannelId}> gesendet.", "✅ Test erfolgreich"))
-                .AsEphemeral());
         }
     }
 

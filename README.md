@@ -8,7 +8,8 @@ A Discord bot that automatically posts a **Question of the Day** to a configured
 
 - 📅 **Per-Server Scheduling** — each server can configure its own channel and post time
 - 💾 **PostgreSQL persistence** — questions and server settings are stored in a database
-- 🔧 **Admin slash commands** — `/config-qotd` for server setup, `/add-question` for content
+- 🔧 **Admin slash commands** — unified `/qotd` command group for configuration and management
+- 🧱 **Modular Architecture** — Easily add new features (like TempVoice) by implementing `IBotModule`
 - 🐳 **Docker-first** — full `docker-compose.yml` setup, multi-stage build
 - 🚀 **Modern CI/CD** — SSH-free deployment via self-hosted GitHub runner
 
@@ -68,15 +69,18 @@ The bot will auto-apply database migrations on startup.
 
 | Command | Description | Permission |
 |---|---|---|
-| `/config-qotd channel` | Set the channel for daily questions | Manage Server |
-| `/config-qotd time` | Set the daily post time (HH:mm) | Manage Server |
-| `/add-question date text` | Schedule a new question for a specific date | Manage Server |
-| `/list-questions` | List upcoming unposted questions | Manage Server |
+| `/qotd config channel` | Set the channel for daily questions | Manage Server |
+| `/qotd config time` | Set the daily post time (HH:mm) | Manage Server |
+| `/qotd add date text` | Schedule a new question for a specific date | Manage Server |
+| `/qotd list` | List upcoming unposted questions | Manage Server |
+| `/qotd config test` | Trigger a test post and thread creation | Manage Server |
+| `/investigate user` | Start an analysis of the specified subject | — |
+| `/help` | Display the botanical guide/help menu | — |
 
 ### Example
 
 ```
-/add-question date:2026-03-07 text:What is your favourite programming language?
+/qotd add date:2026-03-07 text:What is your favourite programming language?
 ```
 
 ---
@@ -86,12 +90,16 @@ The bot will auto-apply database migrations on startup.
 ```
 QotD-Bot/
 ├── src/QotD.Bot/
-│   ├── Commands/          # Slash commands
+│   ├── Core/              # Module infrastructure (IBotModule)
+│   ├── Features/          # Feature-based isolation
+│   │   ├── QotD/          # QotD Logic (Commands, Services)
+│   │   ├── General/       # Shared commands (Help, Investigate)
+│   │   └── TempVoice/     # Skeleton for future features
 │   ├── Configuration/     # Strongly-typed settings POCOs
-│   ├── Data/              # EF Core DbContext + models
-│   │   └── Models/
-│   ├── Services/          # Background services
-│   ├── Program.cs
+│   ├── Data/              # EF Core DbContext + shared models
+│   ├── Services/          # Core bot connectivity services
+│   ├── UI/                # Shared UI templates & design system
+│   ├── Program.cs         # Modular bot initialization
 │   ├── appsettings.json
 │   └── appsettings.Production.json
 ├── Dockerfile
@@ -144,7 +152,21 @@ sudo chown $USER:$USER /opt/qotd-bot
 
 ---
 
-## 🛠️ Development
+### 🧩 Adding New Features
+
+The bot uses a modular architecture. To add a new feature (e.g., `TempVoice`):
+
+1. Create a folder `src/QotD.Bot/Features/NewFeature`.
+2. Implement the `IBotModule` interface:
+   ```csharp
+   public class NewFeatureModule : IBotModule {
+       public void ConfigureServices(IServiceCollection services, IConfiguration config) { ... }
+       public void ConfigureCommands(CommandsExtension commands) { ... }
+   }
+   ```
+3. Add `new NewFeatureModule()` to the `modules` array in `Program.cs`.
+
+---
 
 ### Running locally without Docker
 
