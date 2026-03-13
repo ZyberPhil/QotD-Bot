@@ -17,6 +17,11 @@ public sealed class TempVoiceModule : IBotModule
         // services.AddHostedService<TempVoiceService>();
     }
 
+    public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
+    {
+        // Add services here later
+    }
+
     public void ConfigureCommands(CommandsExtension commands)
     {
         // Add commands here later:

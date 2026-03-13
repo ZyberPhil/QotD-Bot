@@ -14,6 +14,9 @@ public interface IBotModule
     /// <summary>Register DI services (hosted services, singletons, …) for this module.</summary>
     void ConfigureServices(IServiceCollection services, IConfiguration configuration);
 
+    /// <summary>Register services that need to be available specifically to Discord commands.</summary>
+    void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider);
+
     /// <summary>Register slash commands belonging to this module.</summary>
     void ConfigureCommands(CommandsExtension commands);
 }

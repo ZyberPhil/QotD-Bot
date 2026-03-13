@@ -83,6 +83,11 @@ try
                 // Share essential singletons from the main host provider
                 services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
+
+                foreach (var module in modules)
+                {
+                    module.ConfigureDiscordServices(services, s);
+                }
             })
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>

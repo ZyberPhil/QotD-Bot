@@ -16,6 +16,11 @@ public sealed class GeneralModule : IBotModule
         // No extra services needed for general commands
     }
 
+    public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
+    {
+        // No extra services needed for general commands
+    }
+
     public void ConfigureCommands(CommandsExtension commands)
     {
         commands.AddCommands<HelpCommand>();

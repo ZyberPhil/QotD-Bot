@@ -19,6 +19,12 @@ public sealed class QotDModule : IBotModule
         services.AddHostedService<QotDBackgroundService>();
     }
 
+    public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
+    {
+        services.AddSingleton(hostProvider.GetRequiredService<QotDPostingService>());
+        services.AddSingleton(hostProvider.GetRequiredService<ILogger<QotDCommand>>());
+    }
+
     public void ConfigureCommands(CommandsExtension commands)
     {
         commands.AddCommands<QotDCommand>();
