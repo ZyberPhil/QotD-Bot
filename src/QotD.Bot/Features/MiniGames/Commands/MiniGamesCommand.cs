@@ -210,6 +210,12 @@ public class MiniGamesCommand
                     _blackjackService.EndGame(ctx.User.Id);
                 }
             }
+            catch (Exception)
+            {
+                // We don't have an ILogger here directly, but we can use the context's provider if needed or just catch for safety.
+                // In this case, let's just ensure we respond.
+                await ctx.RespondAsync("Ein technischer Fehler ist aufgetreten.");
+            }
             finally
             {
                 userLock.Release();

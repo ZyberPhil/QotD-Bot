@@ -132,8 +132,20 @@ public sealed class MiniGamesEventHandler :
             var activeGame = _blackjackService.GetGame(userId);
             if (activeGame == null)
             {
-                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
-                    .WithContent("Kein aktives Spiel gefunden. Starte ein neues mit `/minigames blackjack play`."));
+                // CRITICAL: Use ephemeral message so we don't overwrite a finished game board
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .WithContent("Kein aktives Spiel gefunden. Starte ein neues mit `/minigames blackjack play`.")
+                    .AsEphemeral(true));
+                return;
+            }
+
+            // Safety check: if the game is already finished (e.g. animation still running or multiple clicks), 
+            // don't try to Hit or Stand again.
+            if (activeGame.Status != GameStatus.Playing)
+            {
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .WithContent("Dieses Spiel ist bereits beendet.")
+                    .AsEphemeral(true));
                 return;
             }
 
@@ -202,6 +214,17 @@ public sealed class MiniGamesEventHandler :
             {
                 _blackjackService.EndGame(userId);
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling Blackjack interaction {InteractionId} for user {UserId}", id, e.User.Id);
+            try 
+            {
+               await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .WithContent("Ein technischer Fehler ist aufgetreten.")
+                    .AsEphemeral(true));
+            }
+            catch { /* Ignore secondary errors during error reporting */ }
         }
         finally
         {
