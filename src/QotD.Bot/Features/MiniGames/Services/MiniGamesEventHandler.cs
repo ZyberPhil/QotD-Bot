@@ -68,6 +68,19 @@ public sealed class MiniGamesEventHandler :
         var id = e.Id;
         if (!id.StartsWith("bj_")) return;
 
+        // Handle Play Again separately as it has a different ID format
+        if (id.StartsWith("bj_play_again_"))
+        {
+             if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
+             {
+                 var g = _blackjackService.StartGame(pid);
+                 var img = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                 var resp = BlackjackUI.BuildResponse(g, img);
+                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, resp);
+                 return;
+             }
+        }
+
         // Custom ID format: bj_action_userId
         var parts = id.Split('_');
         if (parts.Length < 3) return;
@@ -82,26 +95,6 @@ public sealed class MiniGamesEventHandler :
                 .WithContent("Dies ist nicht dein Spiel!")
                 .AsEphemeral(true));
             return;
-        }
-
-        if (action == "play" && parts.Length > 3 && parts[2] == "again")
-        {
-             // Fix logic: parts[1] is "play", parts[2] is "again", parts[3] is userId
-             // But my UI uses "bj_play_again_{userId}"
-             // So parts[1] is "play", parts[2] is "again", parts[3] is userId. Correct.
-        }
-        
-        // Let's re-parse for play again specifically
-        if (id.StartsWith("bj_play_again_"))
-        {
-             if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
-             {
-                 var g = _blackjackService.StartGame(pid);
-                 var img = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
-                 var resp = BlackjackUI.BuildResponse(g, img);
-                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, resp);
-                 return;
-             }
         }
 
         var activeGame = _blackjackService.GetGame(userId);

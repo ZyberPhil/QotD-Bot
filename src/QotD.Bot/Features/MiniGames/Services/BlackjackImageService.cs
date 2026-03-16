@@ -4,7 +4,8 @@ using SkiaSharp;
 using System.Collections.Concurrent;
 using Card = QotD.Bot.Features.MiniGames.Models.Card; // Resolve ambiguity
 using QotD.Bot.Features.MiniGames.Models;
-using SvgLib = SkiaSharp.Extended.Svg.SKSvg; // Alias to resolve ambiguity
+using Svg.Skia;
+using SvgLib = Svg.Skia.SKSvg; // Modern Svg.Skia namespace
 
 namespace QotD.Bot.Features.MiniGames.Services;
 
@@ -58,12 +59,23 @@ public class BlackjackImageService
 
     private SKBitmap LoadSvgWithAppropriateLibrary(string filePath)
     {
-        var svg = new SvgLib();
-        svg.Load(filePath);
+        using var svg = new SvgLib();
+        if (svg.Load(filePath) is null || svg.Picture is null)
+        {
+            throw new Exception("Failed to load SVG");
+        }
+        
         var bitmap = new SKBitmap(CardWidth, CardHeight);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.Transparent);
-        canvas.DrawPicture(svg.Picture);
+        
+        // Scale SVG to fit the card bitmap dimensions
+        float scaleX = (float)CardWidth / svg.Picture.CullRect.Width;
+        float scaleY = (float)CardHeight / svg.Picture.CullRect.Height;
+        
+        var matrix = SKMatrix.CreateScale(scaleX, scaleY);
+        canvas.DrawPicture(svg.Picture, in matrix);
+        
         return bitmap;
     }
 
