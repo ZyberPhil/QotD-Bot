@@ -1,3 +1,5 @@
+using System.IO;
+using System.Linq;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using QotD.Bot.Features.MiniGames.Models;
@@ -50,5 +52,21 @@ public static class BlackjackUI
             GameStatus.Push => "Unentschieden (Push). Keiner gewinnt.",
             _ => "Unbekannter Fehler."
         };
+    }
+
+    public static DiscordWebhookBuilder ToWebhookBuilder(this DiscordInteractionResponseBuilder builder)
+    {
+        var webhookBuilder = new DiscordWebhookBuilder();
+        foreach (var embed in builder.Embeds) webhookBuilder.AddEmbed(embed);
+        foreach (var file in builder.Files) webhookBuilder.AddFile(file.FileName, file.Stream);
+        
+        foreach (var row in builder.Components)
+        {
+            if (row is DiscordActionRowComponent actionRow)
+            {
+                webhookBuilder.AddActionRowComponent(actionRow);
+            }
+        }
+        return webhookBuilder;
     }
 }

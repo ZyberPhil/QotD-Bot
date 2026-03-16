@@ -10,20 +10,25 @@ public class BlackjackService
     public BlackjackGame StartGame(ulong userId)
     {
         var game = new BlackjackGame(userId);
-        
-        // Initial deal
-        game.PlayerHand.Add(game.Deck.Draw());
-        game.DealerHand.Add(game.Deck.Draw());
-        game.PlayerHand.Add(game.Deck.Draw());
-        game.DealerHand.Add(game.Deck.Draw());
+        _activeGames[userId] = game;
+        return game;
+    }
 
-        // Check for immediate blackjacks
+    public void DealToPlayer(BlackjackGame game)
+    {
+        game.PlayerHand.Add(game.Deck.Draw());
+    }
+
+    public void DealToDealer(BlackjackGame game)
+    {
+        game.DealerHand.Add(game.Deck.Draw());
+    }
+
+    public void CheckInitialBlackjack(BlackjackGame game)
+    {
         if (game.PlayerValue == 21 && game.DealerValue == 21) game.Status = GameStatus.Push;
         else if (game.PlayerValue == 21) game.Status = GameStatus.PlayerBlackjack;
         else if (game.DealerValue == 21) game.Status = GameStatus.DealerBlackjack;
-
-        _activeGames[userId] = game;
-        return game;
     }
 
     public BlackjackGame? GetGame(ulong userId)
@@ -61,19 +66,22 @@ public class BlackjackService
 
     public void Stand(ulong userId)
     {
-        var game = GetGame(userId);
-        if (game == null || game.Status != GameStatus.Playing) return;
-
-        DealerTurn(game);
+        // No longer auto-calls DealerTurn here to allow animation in UI
     }
 
-    private void DealerTurn(BlackjackGame game)
+    public bool ShouldDealerHit(BlackjackGame game)
     {
-        // Dealer must hit until 17 or higher
-        while (game.DealerValue < 17)
-        {
-            game.DealerHand.Add(game.Deck.Draw());
-        }
+        return game.DealerValue < 17;
+    }
+
+    public void DealerHit(BlackjackGame game)
+    {
+        game.DealerHand.Add(game.Deck.Draw());
+    }
+
+    public void EvaluateFinalStatus(BlackjackGame game)
+    {
+        if (game.Status != GameStatus.Playing) return;
 
         if (game.DealerValue > 21)
         {
@@ -92,4 +100,5 @@ public class BlackjackService
             game.Status = GameStatus.Push;
         }
     }
+
 }

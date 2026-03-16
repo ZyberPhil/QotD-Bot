@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Features.MiniGames.Models;
 using QotD.Bot.Features.MiniGames.Services;
 using QotD.Bot.UI;
 using DescriptionAttribute = System.ComponentModel.DescriptionAttribute;
@@ -169,10 +170,38 @@ public class MiniGamesCommand
         public async ValueTask PlayAsync(CommandContext ctx)
         {
             var game = _blackjackService.StartGame(ctx.User.Id);
-            var imageBytes = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
             
-            var response = BlackjackUI.BuildResponse(game, imageBytes);
-            await ctx.RespondAsync(response);
+            // First response: Player's first card
+            _blackjackService.DealToPlayer(game);
+            var img1 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+            await ctx.RespondAsync(BlackjackUI.BuildResponse(game, img1));
+
+            // 2nd card: Dealer (hidden)
+            await Task.Delay(1000);
+            _blackjackService.DealToDealer(game);
+            var img2 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img2).ToWebhookBuilder());
+
+            // 3rd card: Player
+            await Task.Delay(1000);
+            _blackjackService.DealToPlayer(game);
+            var img3 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img3).ToWebhookBuilder());
+
+            // 4th card: Dealer
+            await Task.Delay(1000);
+            _blackjackService.DealToDealer(game);
+            
+            // check for immediate blackjack
+            _blackjackService.CheckInitialBlackjack(game);
+
+            var img4 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, game.Status == GameStatus.Playing);
+            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img4).ToWebhookBuilder());
+
+            if (game.Status != GameStatus.Playing)
+            {
+                _blackjackService.EndGame(ctx.User.Id);
+            }
         }
     }
 }
