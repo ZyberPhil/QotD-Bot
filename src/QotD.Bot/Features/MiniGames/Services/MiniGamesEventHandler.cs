@@ -10,20 +10,31 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 
+using QotD.Bot.Features.MiniGames.Models;
+using QotD.Bot.UI;
+
 namespace QotD.Bot.Features.MiniGames.Services;
 
-public sealed class MiniGamesEventHandler : IEventHandler<MessageCreatedEventArgs>
+public sealed class MiniGamesEventHandler : 
+    IEventHandler<MessageCreatedEventArgs>,
+    IEventHandler<ComponentInteractionCreatedEventArgs>
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MiniGamesEventHandler> _logger;
+    private readonly BlackjackService _blackjackService;
+    private readonly BlackjackImageService _imageService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
 
     public MiniGamesEventHandler(
         IServiceScopeFactory scopeFactory,
-        ILogger<MiniGamesEventHandler> logger)
+        ILogger<MiniGamesEventHandler> logger,
+        BlackjackService blackjackService,
+        BlackjackImageService imageService)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _blackjackService = blackjackService;
+        _imageService = imageService;
     }
 
     public async Task HandleEventAsync(DiscordClient client, MessageCreatedEventArgs e)
@@ -49,6 +60,77 @@ public sealed class MiniGamesEventHandler : IEventHandler<MessageCreatedEventArg
         {
             await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
             return;
+        }
+    }
+
+    public async Task HandleEventAsync(DiscordClient client, ComponentInteractionCreatedEventArgs e)
+    {
+        var id = e.Id;
+        if (!id.StartsWith("bj_")) return;
+
+        // Custom ID format: bj_action_userId
+        var parts = id.Split('_');
+        if (parts.Length < 3) return;
+
+        var action = parts[1];
+        if (!ulong.TryParse(parts[2], out var userId)) return;
+
+        // Only the player who started the game can interact
+        if (e.User.Id != userId)
+        {
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                .WithContent("Dies ist nicht dein Spiel!")
+                .AsEphemeral(true));
+            return;
+        }
+
+        if (action == "play" && parts.Length > 3 && parts[2] == "again")
+        {
+             // Fix logic: parts[1] is "play", parts[2] is "again", parts[3] is userId
+             // But my UI uses "bj_play_again_{userId}"
+             // So parts[1] is "play", parts[2] is "again", parts[3] is userId. Correct.
+        }
+        
+        // Let's re-parse for play again specifically
+        if (id.StartsWith("bj_play_again_"))
+        {
+             if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
+             {
+                 var g = _blackjackService.StartGame(pid);
+                 var img = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                 var resp = BlackjackUI.BuildResponse(g, img);
+                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, resp);
+                 return;
+             }
+        }
+
+        var activeGame = _blackjackService.GetGame(userId);
+        if (activeGame == null)
+        {
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
+                .WithContent("Kein aktives Spiel gefunden. Starte ein neues mit `/minigames blackjack play`."));
+            return;
+        }
+
+        switch (action)
+        {
+            case "hit":
+                _blackjackService.Hit(userId);
+                break;
+            case "stand":
+                _blackjackService.Stand(userId);
+                break;
+        }
+
+        var hideDealer = activeGame.Status == GameStatus.Playing;
+        var tableImage = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, hideDealer);
+        var update = BlackjackUI.BuildResponse(activeGame, tableImage);
+        
+        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, update);
+
+        if (activeGame.Status != GameStatus.Playing)
+        {
+            _blackjackService.EndGame(userId);
         }
     }
 

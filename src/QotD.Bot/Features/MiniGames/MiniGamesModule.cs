@@ -14,6 +14,8 @@ public sealed class MiniGamesModule : IBotModule
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<BlackjackService>();
+        services.AddSingleton<BlackjackImageService>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)

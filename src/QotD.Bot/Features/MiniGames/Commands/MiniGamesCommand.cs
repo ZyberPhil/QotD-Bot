@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Features.MiniGames.Services;
+using QotD.Bot.UI;
 using DescriptionAttribute = System.ComponentModel.DescriptionAttribute;
 
 namespace QotD.Bot.Features.MiniGames.Commands;
@@ -146,6 +148,31 @@ public class MiniGamesCommand
             {
                 await ctx.RespondAsync("Es ist kein Wortketten-Kanal konfiguriert.");
             }
+        }
+    }
+
+    [DSharpPlus.Commands.Command("blackjack")]
+    [Description("Blackjack Befehle")]
+    public class BlackjackCommands
+    {
+        private readonly BlackjackService _blackjackService;
+        private readonly BlackjackImageService _imageService;
+
+        public BlackjackCommands(BlackjackService blackjackService, BlackjackImageService imageService)
+        {
+            _blackjackService = blackjackService;
+            _imageService = imageService;
+        }
+
+        [DSharpPlus.Commands.Command("play")]
+        [Description("Startet eine Runde Blackjack")]
+        public async ValueTask PlayAsync(CommandContext ctx)
+        {
+            var game = _blackjackService.StartGame(ctx.User.Id);
+            var imageBytes = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+            
+            var response = BlackjackUI.BuildResponse(game, imageBytes);
+            await ctx.RespondAsync(response);
         }
     }
 }
