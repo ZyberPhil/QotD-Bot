@@ -28,6 +28,12 @@ WORKDIR /app
 ENV TZ=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
+# Install fonts for SVG rendering (SkiaSharp/Svg.Skia needs glyphs for suits like ♠)
+RUN apt-get update && apt-get install -y \
+    fonts-dejavu-core \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root user for security
 RUN adduser --disabled-password --gecos "" appuser
 USER appuser
