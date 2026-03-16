@@ -18,14 +18,8 @@ public class BlackjackImageService
 
     public BlackjackImageService()
     {
-        // Path to the SVG assets
+        // Path to the SVG assets in the execution directory
         _deckPath = Path.Combine(AppContext.BaseDirectory, "UI", "images", "blackjack_deck");
-        
-        // Fallback for development if AppContext.BaseDirectory doesn't contain the UI folder
-        if (!Directory.Exists(_deckPath))
-        {
-            _deckPath = "/home/phil/Documents/QotD/QotD-Bot/src/QotD.Bot/UI/images/blackjack_deck";
-        }
     }
 
     private SKBitmap GetCardBitmap(string fileName)
