@@ -79,6 +79,15 @@ public sealed class MiniGamesEventHandler :
             {
                  if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
                  {
+                     // Only the player who started the original game can click "Play Again"
+                     if (e.User.Id != pid)
+                     {
+                         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                             .WithContent("Dies ist nicht dein Spiel! Starte ein eigenes mit `/minigames blackjack play`.")
+                             .AsEphemeral(true));
+                         return;
+                     }
+
                      var g = _blackjackService.StartGame(pid);
                      
                      // Initial deal animation for Play Again
