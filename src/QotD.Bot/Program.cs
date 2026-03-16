@@ -26,7 +26,8 @@ try
     IBotModule[] modules = [
         new GeneralModule(),
         new QotDModule(),
-        new TempVoiceModule()
+        new TempVoiceModule(),
+        new QotD.Bot.Features.MiniGames.MiniGamesModule()
     ];
 
     // ── Configuration ──────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ try
                     module.ConfigureDiscordServices(services, s);
                 }
             })
+            .ConfigureEventHandlers(b => b.AddEventHandlers([typeof(QotD.Bot.Features.MiniGames.Services.MiniGamesEventHandler)]))
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {

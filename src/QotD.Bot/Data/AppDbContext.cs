@@ -10,6 +10,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<GuildConfig> GuildConfigs => Set<GuildConfig>();
     public DbSet<GuildHistory> GuildHistories => Set<GuildHistory>();
+    
+    // MiniGames
+    public DbSet<CountingChannelConfig> CountingChannels => Set<CountingChannelConfig>();
+    public DbSet<WordChainConfig> WordChainConfigs => Set<WordChainConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
