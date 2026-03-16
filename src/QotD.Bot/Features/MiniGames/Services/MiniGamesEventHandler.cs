@@ -68,131 +68,144 @@ public sealed class MiniGamesEventHandler :
         var id = e.Id;
         if (!id.StartsWith("bj_")) return;
 
-        // Handle Play Again separately as it has a different ID format
-        if (id.StartsWith("bj_play_again_"))
+        // Use a per-user lock for all Blackjack interactions to prevent race conditions
+        var userLock = _blackjackService.GetLock(e.User.Id);
+        await userLock.WaitAsync();
+
+        try
         {
-             if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
-             {
-                 var g = _blackjackService.StartGame(pid);
-                 
-                 // Initial deal animation for Play Again
-                 _blackjackService.DealToPlayer(g);
-                 var img1 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
-                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, BlackjackUI.BuildResponse(g, img1));
-
-                 await Task.Delay(1000);
-                 _blackjackService.DealToDealer(g);
-                 var img2 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
-                 await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img2).ToWebhookBuilder());
-
-                 await Task.Delay(1000);
-                 _blackjackService.DealToPlayer(g);
-                 var img3 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
-                 await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img3).ToWebhookBuilder());
-
-                 await Task.Delay(1000);
-                 _blackjackService.DealToDealer(g);
-                 _blackjackService.CheckInitialBlackjack(g);
-                 
-                 var img4 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, g.Status == GameStatus.Playing);
-                 await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img4).ToWebhookBuilder());
-
-                 if (g.Status != GameStatus.Playing)
+            // Handle Play Again separately as it has a different ID format
+            if (id.StartsWith("bj_play_again_"))
+            {
+                 if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
                  {
-                     _blackjackService.EndGame(pid);
+                     var g = _blackjackService.StartGame(pid);
+                     
+                     // Initial deal animation for Play Again
+                     _blackjackService.DealToPlayer(g);
+                     var img1 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                     // Hide buttons during animation to prevent early "Hit" clicks
+                     await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, BlackjackUI.BuildResponse(g, img1, showButtons: false));
+
+                     await Task.Delay(1000);
+                     _blackjackService.DealToDealer(g);
+                     var img2 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                     await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img2, showButtons: false).ToWebhookBuilder());
+
+                     await Task.Delay(1000);
+                     _blackjackService.DealToPlayer(g);
+                     var img3 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                     await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img3, showButtons: false).ToWebhookBuilder());
+
+                     await Task.Delay(1000);
+                     _blackjackService.DealToDealer(g);
+                     _blackjackService.CheckInitialBlackjack(g);
+                     
+                     var img4 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, g.Status == GameStatus.Playing);
+                     // Final step of animation: show buttons if still playing
+                     await e.Interaction.EditOriginalResponseAsync(BlackjackUI.BuildResponse(g, img4, showButtons: true).ToWebhookBuilder());
+
+                     if (g.Status != GameStatus.Playing)
+                     {
+                         _blackjackService.EndGame(pid);
+                     }
+                     return;
                  }
-                 return;
-             }
-        }
+            }
 
-        // Custom ID format: bj_action_userId
-        var parts = id.Split('_');
-        if (parts.Length < 3) return;
+            // Custom ID format: bj_action_userId
+            var parts = id.Split('_');
+            if (parts.Length < 3) return;
 
-        var action = parts[1];
-        if (!ulong.TryParse(parts[2], out var userId)) return;
+            var action = parts[1];
+            if (!ulong.TryParse(parts[parts.Length - 1], out var userId)) return;
 
-        // Only the player who started the game can interact
-        if (e.User.Id != userId)
-        {
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                .WithContent("Dies ist nicht dein Spiel!")
-                .AsEphemeral(true));
-            return;
-        }
+            // Only the player who started the game can interact
+            if (e.User.Id != userId)
+            {
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .WithContent("Dies ist nicht dein Spiel!")
+                    .AsEphemeral(true));
+                return;
+            }
 
-        var activeGame = _blackjackService.GetGame(userId);
-        if (activeGame == null)
-        {
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
-                .WithContent("Kein aktives Spiel gefunden. Starte ein neues mit `/minigames blackjack play`."));
-            return;
-        }
+            var activeGame = _blackjackService.GetGame(userId);
+            if (activeGame == null)
+            {
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
+                    .WithContent("Kein aktives Spiel gefunden. Starte ein neues mit `/minigames blackjack play`."));
+                return;
+            }
 
-        switch (action)
-        {
-            case "hit":
-                _blackjackService.DealToPlayer(activeGame);
-                
-                // Show the new card
-                var hitImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, true);
-                var hitResp = BlackjackUI.BuildResponse(activeGame, hitImg);
-                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, hitResp);
-                
-                // Check if busted
-                if (activeGame.PlayerValue > 21)
-                {
-                    await Task.Delay(1000);
-                    activeGame.Status = GameStatus.PlayerBust;
+            switch (action)
+            {
+                case "hit":
+                    _blackjackService.DealToPlayer(activeGame);
                     
-                    var bustImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
-                    var bustResp = BlackjackUI.BuildResponse(activeGame, bustImg);
-                    await e.Interaction.EditOriginalResponseAsync(bustResp.ToWebhookBuilder());
-                    _blackjackService.EndGame(userId);
-                }
-                return;
-            case "stand":
-                // Send initial reveal (show dealer's hidden card)
-                // But wait, the dealer's 2nd card is ALREADY in the hand, just the UI hides it if Status == Playing.
-                // We want to show it now.
-                var revealImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
-                var revealResp = BlackjackUI.BuildResponse(activeGame, revealImg);
-                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, revealResp);
+                    // Show the new card
+                    var hitImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, true);
+                    // Hide buttons briefly during hit reveal? 
+                    // Actually let's just show them, but hit is usually fast.
+                    var hitResp = BlackjackUI.BuildResponse(activeGame, hitImg);
+                    await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, hitResp);
+                    
+                    // Check if busted
+                    if (activeGame.PlayerValue > 21)
+                    {
+                        await Task.Delay(1000);
+                        activeGame.Status = GameStatus.PlayerBust;
+                        
+                        var bustImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
+                        var bustResp = BlackjackUI.BuildResponse(activeGame, bustImg);
+                        await e.Interaction.EditOriginalResponseAsync(bustResp.ToWebhookBuilder());
+                        _blackjackService.EndGame(userId);
+                    }
+                    return;
+                case "stand":
+                    // Send initial reveal (show dealer's hidden card)
+                    var revealImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
+                    var revealResp = BlackjackUI.BuildResponse(activeGame, revealImg, showButtons: false);
+                    await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, revealResp);
 
-                // Animated Dealer Turn
-                while (_blackjackService.ShouldDealerHit(activeGame))
-                {
+                    // Animated Dealer Turn
+                    while (_blackjackService.ShouldDealerHit(activeGame))
+                    {
+                        await Task.Delay(1000);
+                        _blackjackService.DealerHit(activeGame);
+                        var dealerTableImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
+                        var dealerUpdate = BlackjackUI.BuildResponse(activeGame, dealerTableImg, showButtons: false);
+                        await e.Interaction.EditOriginalResponseAsync(dealerUpdate.ToWebhookBuilder());
+                    }
+
                     await Task.Delay(1000);
-                    _blackjackService.DealerHit(activeGame);
-                    var dealerTableImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
-                    var dealerUpdate = BlackjackUI.BuildResponse(activeGame, dealerTableImg);
-                    await e.Interaction.EditOriginalResponseAsync(dealerUpdate.ToWebhookBuilder());
-                }
+                    _blackjackService.EvaluateFinalStatus(activeGame);
+                    
+                    // Final update with result
+                    var finalImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
+                    var finalUpdate = BlackjackUI.BuildResponse(activeGame, finalImg, showButtons: true);
+                    await e.Interaction.EditOriginalResponseAsync(finalUpdate.ToWebhookBuilder());
 
-                await Task.Delay(1000);
-                _blackjackService.EvaluateFinalStatus(activeGame);
-                
-                // Final update with result
-                var finalImg = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, false);
-                var finalUpdate = BlackjackUI.BuildResponse(activeGame, finalImg);
-                await e.Interaction.EditOriginalResponseAsync(finalUpdate.ToWebhookBuilder());
+                    if (activeGame.Status != GameStatus.Playing)
+                    {
+                        _blackjackService.EndGame(userId);
+                    }
+                    return;
+            }
 
-                if (activeGame.Status != GameStatus.Playing)
-                {
-                    _blackjackService.EndGame(userId);
-                }
-                return;
+            var hideDealer = activeGame.Status == GameStatus.Playing;
+            var tableImage = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, hideDealer);
+            var update = BlackjackUI.BuildResponse(activeGame, tableImage);
+            
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, update);
+
+            if (activeGame.Status != GameStatus.Playing)
+            {
+                _blackjackService.EndGame(userId);
+            }
         }
-
-        var hideDealer = activeGame.Status == GameStatus.Playing;
-        var tableImage = _imageService.CreateGameTableImage(activeGame.PlayerHand, activeGame.DealerHand, hideDealer);
-        var update = BlackjackUI.BuildResponse(activeGame, tableImage);
-        
-        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, update);
-
-        if (activeGame.Status != GameStatus.Playing)
+        finally
         {
-            _blackjackService.EndGame(userId);
+            userLock.Release();
         }
     }
 

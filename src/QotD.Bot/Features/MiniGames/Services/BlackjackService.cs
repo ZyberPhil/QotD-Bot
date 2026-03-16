@@ -6,6 +6,12 @@ namespace QotD.Bot.Features.MiniGames.Services;
 public class BlackjackService
 {
     private readonly ConcurrentDictionary<ulong, BlackjackGame> _activeGames = new();
+    private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _userLocks = new();
+
+    public SemaphoreSlim GetLock(ulong userId)
+    {
+        return _userLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+    }
 
     public BlackjackGame StartGame(ulong userId)
     {

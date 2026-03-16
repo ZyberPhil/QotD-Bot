@@ -169,38 +169,50 @@ public class MiniGamesCommand
         [Description("Startet eine Runde Blackjack")]
         public async ValueTask PlayAsync(CommandContext ctx)
         {
-            var game = _blackjackService.StartGame(ctx.User.Id);
-            
-            // First response: Player's first card
-            _blackjackService.DealToPlayer(game);
-            var img1 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
-            await ctx.RespondAsync(BlackjackUI.BuildResponse(game, img1));
+            var userLock = _blackjackService.GetLock(ctx.User.Id);
+            await userLock.WaitAsync();
 
-            // 2nd card: Dealer (hidden)
-            await Task.Delay(1000);
-            _blackjackService.DealToDealer(game);
-            var img2 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
-            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img2).ToWebhookBuilder());
-
-            // 3rd card: Player
-            await Task.Delay(1000);
-            _blackjackService.DealToPlayer(game);
-            var img3 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
-            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img3).ToWebhookBuilder());
-
-            // 4th card: Dealer
-            await Task.Delay(1000);
-            _blackjackService.DealToDealer(game);
-            
-            // check for immediate blackjack
-            _blackjackService.CheckInitialBlackjack(game);
-
-            var img4 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, game.Status == GameStatus.Playing);
-            await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img4).ToWebhookBuilder());
-
-            if (game.Status != GameStatus.Playing)
+            try
             {
-                _blackjackService.EndGame(ctx.User.Id);
+                var game = _blackjackService.StartGame(ctx.User.Id);
+                
+                // First response: Player's first card
+                _blackjackService.DealToPlayer(game);
+                var img1 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+                // Hide buttons during initial deal animation
+                await ctx.RespondAsync(BlackjackUI.BuildResponse(game, img1, showButtons: false));
+
+                // 2nd card: Dealer (hidden)
+                await Task.Delay(1000);
+                _blackjackService.DealToDealer(game);
+                var img2 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+                await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img2, showButtons: false).ToWebhookBuilder());
+
+                // 3rd card: Player
+                await Task.Delay(1000);
+                _blackjackService.DealToPlayer(game);
+                var img3 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+                await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img3, showButtons: false).ToWebhookBuilder());
+
+                // 4th card: Dealer
+                await Task.Delay(1000);
+                _blackjackService.DealToDealer(game);
+                
+                // check for immediate blackjack
+                _blackjackService.CheckInitialBlackjack(game);
+
+                var img4 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, game.Status == GameStatus.Playing);
+                // Show buttons now that initial deal is complete
+                await ctx.EditResponseAsync(BlackjackUI.BuildResponse(game, img4, showButtons: true).ToWebhookBuilder());
+
+                if (game.Status != GameStatus.Playing)
+                {
+                    _blackjackService.EndGame(ctx.User.Id);
+                }
+            }
+            finally
+            {
+                userLock.Release();
             }
         }
     }

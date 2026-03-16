@@ -9,7 +9,7 @@ namespace QotD.Bot.UI;
 public static class BlackjackUI
 {
 
-    public static DiscordInteractionResponseBuilder BuildResponse(BlackjackGame game, byte[] imageBytes)
+    public static DiscordInteractionResponseBuilder BuildResponse(BlackjackGame game, byte[] imageBytes, bool showButtons = true)
     {
         var builder = new DiscordInteractionResponseBuilder();
 
@@ -21,14 +21,14 @@ public static class BlackjackUI
         builder.AddEmbed(embed);
         builder.AddFile("blackjack.png", new MemoryStream(imageBytes));
 
-        if (game.Status == GameStatus.Playing)
+        if (showButtons && game.Status == GameStatus.Playing)
         {
             builder.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] {
                 new DiscordButtonComponent(DiscordButtonStyle.Primary, $"bj_hit_{game.UserId}", "Hit"),
                 new DiscordButtonComponent(DiscordButtonStyle.Secondary, $"bj_stand_{game.UserId}", "Stand")
             }));
         }
-        else
+        else if (showButtons)
         {
             builder.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] {
                 new DiscordButtonComponent(DiscordButtonStyle.Success, $"bj_play_again_{game.UserId}", "Play Again")
