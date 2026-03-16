@@ -222,20 +222,18 @@ public sealed class MiniGamesEventHandler : IEventHandler<MessageCreatedEventArg
     {
         await message.CreateReactionAsync(DiscordEmoji.FromUnicode("❌"));
 
-        var startWord = "apfel"; // We could use a random dictionary, hardcoding one for fallback.
-
         var embed = new DiscordEmbedBuilder()
             .WithColor(new DiscordColor("#FF4444"))
             .WithTitle("💥 Wortkette gerissen!")
             .WithDescription($"❌ **{author.Mention}** hat einen Fehler gemacht!\nGrund: *{reason}*\n\n📊 Kette gerissen bei: **{config.ChainLength}** Wörtern\n🏆 Highscore: **{config.Highscore}**")
-            .WithFooter($"Neues Startwort: {startWord}")
+            .WithFooter("Die Kette wurde zurückgesetzt. Du kannst jetzt mit jedem beliebigen Wort beginnen!")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await channel.SendMessageAsync(embed);
 
         config.ChainLength = 0;
         config.LastUserId = 0;
-        config.LastWord = startWord;
+        config.LastWord = null;
         config.UsedWordsJson = "[]";
         
         await db.SaveChangesAsync();
