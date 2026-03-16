@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <rect x="1" y="1" width="118" height="178" rx="10" ry="10" fill="white" stroke="#333" stroke-width="2"/>
+  
+  <text x="12" y="30" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#212121">7</text>
+  <text x="12" y="55" font-family="Arial, sans-serif" font-size="24" fill="#212121">♣</text>
+  
+  <text x="60" y="110" font-family="Arial, sans-serif" font-size="60" text-anchor="middle" fill="#212121">♣</text>
+  
+  <g transform="translate(120, 180) rotate(180)">
+    <text x="12" y="30" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#212121">7</text>
+    <text x="12" y="55" font-family="Arial, sans-serif" font-size="24" fill="#212121">♣</text>
+  </g>
+</svg>
