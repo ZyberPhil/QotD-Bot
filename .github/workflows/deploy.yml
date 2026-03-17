@@ -73,6 +73,7 @@ jobs:
                   condition: service_healthy
               environment:
                 ASPNETCORE_ENVIRONMENT: Production
+                ASPNETCORE_URLS: http://+:8080
                 TZ: Europe/Berlin
                 Discord__Token: ${DISCORD_TOKEN}
                 Discord__GuildId: ${DISCORD_GUILD_ID}
@@ -80,6 +81,8 @@ jobs:
                 Scheduling__PostTime: ${POST_TIME:-07:00}
                 Scheduling__Timezone: ${TIMEZONE:-Europe/Berlin}
                 ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=qotd;Username=qotd;Password=${POSTGRES_PASSWORD}
+              ports:
+                - "8080:8080"
               volumes:
                 - ./logs:/app/logs
               networks:

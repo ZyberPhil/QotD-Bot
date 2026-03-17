@@ -7,6 +7,7 @@ using QotD.Bot.Configuration;
 using QotD.Bot.Core;
 using QotD.Bot.Data;
 using QotD.Bot.Features.General;
+using QotD.Bot.Features.General.Models;
 using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Services;
@@ -20,7 +21,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    var builder = Host.CreateApplicationBuilder(args);
+    var builder = WebApplication.CreateBuilder(args);
 
     // ── Module Infrastructure ──────────────────────────────────────────────────
     IBotModule[] modules = [
@@ -41,6 +42,20 @@ try
         builder.Configuration.GetSection(DiscordSettings.SectionName));
     builder.Services.Configure<SchedulingSettings>(
         builder.Configuration.GetSection(SchedulingSettings.SectionName));
+
+    // ── CORS ───────────────────────────────────────────────────────────────────
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin() // Adjust this for production security
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+    });
+
+    // ── API Controllers ────────────────────────────────────────────────────────
+    builder.Services.AddControllers();
 
     // ── Serilog (full configuration from appsettings.json) ─────────────────────
     builder.Services.AddSerilog((services, loggerConfig) =>
@@ -106,10 +121,14 @@ try
     builder.Services.AddSingleton<DiscordBotService>();
     builder.Services.AddHostedService(s => s.GetRequiredService<DiscordBotService>());
 
-    var host = builder.Build();
+    var app = builder.Build();
+
+    // ── API Endpoints ──────────────────────────────────────────────────────────
+    app.UseCors();
+    app.MapControllers();
 
     // ── Apply EF Core Migrations at startup ────────────────────────────────────
-    using (var scope = host.Services.CreateScope())
+    using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         Log.Information("Applying database migrations…");
@@ -117,7 +136,7 @@ try
         Log.Information("Database migrations applied.");
     }
 
-    await host.RunAsync();
+    await app.RunAsync();
 }
 catch (Exception ex) when (ex is not OperationCanceledException)
 {
