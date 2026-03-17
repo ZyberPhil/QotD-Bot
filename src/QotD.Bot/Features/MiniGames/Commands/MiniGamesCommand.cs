@@ -63,7 +63,8 @@ public class MiniGamesCommand
             }
 
             await db.SaveChangesAsync();
-            _eventHandler.RegisterChannel(channel.Id);
+            var configId = existing?.Id ?? (db.Entry(existing ?? db.CountingChannels.Local.First(c => c.ChannelId == channel.Id)).Entity.Id);
+            _eventHandler.RegisterChannel(channel.Id, MiniGameType.Counting, configId);
             await ctx.RespondAsync($"Der Zähl-Kanal wurde auf {channel.Mention} gesetzt!");
         }
         
@@ -130,7 +131,8 @@ public class MiniGamesCommand
             }
 
             await db.SaveChangesAsync();
-            _eventHandler.RegisterChannel(channel.Id);
+            var configId = existing?.Id ?? (db.Entry(existing ?? db.WordChainConfigs.Local.First(c => c.ChannelId == channel.Id)).Entity.Id);
+            _eventHandler.RegisterChannel(channel.Id, MiniGameType.WordChain, configId);
             await ctx.RespondAsync($"Der Wortketten-Kanal wurde auf {channel.Mention} gesetzt!");
         }
         

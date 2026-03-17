@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QotD.Bot.Data;
@@ -11,13 +12,15 @@ using QotD.Bot.Data;
 namespace QotD.Bot.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317122000_AddMiniGamesChannelIndexes")]
+    partial class AddMiniGamesChannelIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.14")
+                .HasAnnotation("ProductVersion", "9.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -30,22 +33,19 @@ namespace QotD.Bot.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("ChannelId")
+                    b.Property<ulong>("ChannelId")
                         .HasColumnType("numeric(20,0)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CurrentCount")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("GuildId")
+                    b.Property<ulong>("GuildId")
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<int>("Highscore")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("LastUserId")
+                    b.Property<ulong>("LastUserId")
                         .HasColumnType("numeric(20,0)");
 
                     b.HasKey("Id");
@@ -58,34 +58,37 @@ namespace QotD.Bot.Data.Migrations
 
             modelBuilder.Entity("QotD.Bot.Data.Models.GuildConfig", b =>
                 {
-                    b.Property<decimal>("GuildId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<ulong>("GuildId")
                         .HasColumnType("numeric(20,0)");
 
-                    b.Property<decimal>("ChannelId")
+                    b.Property<ulong?>("LogChannelId")
                         .HasColumnType("numeric(20,0)");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("MessageTemplate")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("PingRoleId")
+                    b.Property<ulong?>("PingRoleId")
                         .HasColumnType("numeric(20,0)");
 
-                    b.Property<TimeOnly>("PostTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<string>("Timezone")
+                    b.Property<string>("Prefix")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("GuildId");
+                    b.Property<ulong>("QotDChannelId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<TimeOnly>("ReleaseTime")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
 
                     b.ToTable("GuildConfigs");
                 });
 
-            modelBuilder.Entity("QotD.Bot.Data.Models.GuildHistory", b =>
+            modelBuilder.Entity("QotD.Bot.Data.Models.MessageTemplate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -93,23 +96,17 @@ namespace QotD.Bot.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("PostedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("QuestionId");
-
-                    b.HasIndex("GuildId", "QuestionId")
-                        .IsUnique();
-
-                    b.ToTable("GuildHistories");
+                    b.ToTable("MessageTemplates");
                 });
 
             modelBuilder.Entity("QotD.Bot.Data.Models.Question", b =>
@@ -120,30 +117,35 @@ namespace QotD.Bot.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<bool>("Posted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("QuestionText")
+                    b.Property<string>("Content")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly>("ScheduledFor")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ScheduledFor")
-                        .IsUnique();
-
                     b.ToTable("Questions");
+                });
+
+            modelBuilder.Entity("QotD.Bot.Data.Models.TempVoiceConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<ulong>("ChannelId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TempVoiceConfigs");
                 });
 
             modelBuilder.Entity("QotD.Bot.Data.Models.WordChainConfig", b =>
@@ -157,19 +159,16 @@ namespace QotD.Bot.Data.Migrations
                     b.Property<int>("ChainLength")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("ChannelId")
+                    b.Property<ulong>("ChannelId")
                         .HasColumnType("numeric(20,0)");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("GuildId")
+                    b.Property<ulong>("GuildId")
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<int>("Highscore")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("LastUserId")
+                    b.Property<ulong>("LastUserId")
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<string>("LastWord")
@@ -180,22 +179,11 @@ namespace QotD.Bot.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
- 
+
                     b.HasIndex("ChannelId")
                         .IsUnique();
 
                     b.ToTable("WordChainConfigs");
-                });
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.GuildHistory", b =>
-                {
-                    b.HasOne("QotD.Bot.Data.Models.Question", "Question")
-                        .WithMany()
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Question");
                 });
 #pragma warning restore 612, 618
         }

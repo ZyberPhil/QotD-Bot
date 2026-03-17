@@ -15,6 +15,9 @@ using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.MiniGames.Services;
 
+public enum MiniGameType { Counting, WordChain }
+public record struct MiniGameChannelInfo(MiniGameType Type, int ConfigId);
+
 public sealed class MiniGamesEventHandler : 
     IEventHandler<MessageCreatedEventArgs>,
     IEventHandler<ComponentInteractionCreatedEventArgs>
@@ -24,7 +27,7 @@ public sealed class MiniGamesEventHandler :
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
-    private readonly ConcurrentDictionary<ulong, byte> _minigameChannels = new();
+    private readonly ConcurrentDictionary<ulong, MiniGameChannelInfo> _minigameChannels = new();
     private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public MiniGamesEventHandler(
@@ -44,14 +47,16 @@ public sealed class MiniGamesEventHandler :
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var countingChannels = await db.CountingChannels.AsNoTracking().Select(c => c.ChannelId).ToListAsync();
-            foreach (var id in countingChannels) _minigameChannels.TryAdd(id, 0);
+        var countingChannels = await db.CountingChannels.AsNoTracking().Select(c => new { c.ChannelId, c.Id }).ToListAsync();
+        foreach (var c in countingChannels) _minigameChannels.TryAdd(c.ChannelId, new MiniGameChannelInfo(MiniGameType.Counting, c.Id));
 
-            var wordChainChannels = await db.WordChainConfigs.AsNoTracking().Select(c => c.ChannelId).ToListAsync();
-            foreach (var id in wordChainChannels) _minigameChannels.TryAdd(id, 0);
+        var wordChainChannels = await db.WordChainConfigs.AsNoTracking().Select(c => new { c.ChannelId, c.Id }).ToListAsync();
+        foreach (var c in wordChainChannels) _minigameChannels.TryAdd(c.ChannelId, new MiniGameChannelInfo(MiniGameType.WordChain, c.Id));
     }
 
-    public void RegisterChannel(ulong channelId) => _minigameChannels.TryAdd(channelId, 0);
+    public void RegisterChannel(ulong channelId, MiniGameType type, int configId) 
+        => _minigameChannels[channelId] = new MiniGameChannelInfo(type, configId);
+        
     public void UnregisterChannel(ulong channelId) => _minigameChannels.TryRemove(channelId, out _);
 
     public void CleanupUnusedLocks()
@@ -78,25 +83,16 @@ public sealed class MiniGamesEventHandler :
         var channelId = e.Channel.Id;
         
         // Fast exit for the 99% of normal chat messages
-        if (!_minigameChannels.ContainsKey(channelId)) return;
+        if (!_minigameChannels.TryGetValue(channelId, out var info)) return;
 
-        // It is a known minigame channel
-        using (var scope = _scopeFactory.CreateScope())
+        // Zero-Discovery: We already know the game type and ID from our cache!
+        if (info.Type == MiniGameType.Counting)
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var countingConfig = await db.CountingChannels.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
-            if (countingConfig != null)
-            {
-                await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, countingConfig.Id);
-                return;
-            }
-
-            var wordChainConfig = await db.WordChainConfigs.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
-            if (wordChainConfig != null)
-            {
-                await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
-                return;
-            }
+            await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, info.ConfigId);
+        }
+        else if (info.Type == MiniGameType.WordChain)
+        {
+            await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, info.ConfigId);
         }
     }
 
