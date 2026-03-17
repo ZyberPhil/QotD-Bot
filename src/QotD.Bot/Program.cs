@@ -10,6 +10,7 @@ using QotD.Bot.Features.General;
 using QotD.Bot.Features.General.Models;
 using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
+using QotD.Bot.Features.MiniGames.Services;
 using QotD.Bot.Services;
 using Serilog;
 
@@ -135,6 +136,12 @@ try
         Log.Information("Applying database migrations…");
         await db.Database.MigrateAsync();
         Log.Information("Database migrations applied.");
+
+        // ── Warm up caches and assets ──────────────────────────────────────────────
+        Log.Information("Warming up minigame caches and assets…");
+        app.Services.GetRequiredService<BlackjackImageService>().PreloadAllCards();
+        await app.Services.GetRequiredService<MiniGamesEventHandler>().InitializeAsync();
+        Log.Information("Warmup complete.");
     }
 
     await app.RunAsync();

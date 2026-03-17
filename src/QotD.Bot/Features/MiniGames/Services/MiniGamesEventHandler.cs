@@ -38,6 +38,21 @@ public sealed class MiniGamesEventHandler :
         _imageService = imageService;
     }
 
+    public async Task InitializeAsync()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var countingChannels = await db.CountingChannels.AsNoTracking().Select(c => c.ChannelId).ToListAsync();
+            foreach (var id in countingChannels) _minigameChannels.TryAdd(id, 0);
+
+            var wordChainChannels = await db.WordChainConfigs.AsNoTracking().Select(c => c.ChannelId).ToListAsync();
+            foreach (var id in wordChainChannels) _minigameChannels.TryAdd(id, 0);
+    }
+
+    public void RegisterChannel(ulong channelId) => _minigameChannels.TryAdd(channelId, 0);
+    public void UnregisterChannel(ulong channelId) => _minigameChannels.TryRemove(channelId, out _);
+
     public async Task HandleEventAsync(DiscordClient client, MessageCreatedEventArgs e)
     {
         if (e.Author.IsBot) return;
@@ -45,31 +60,8 @@ public sealed class MiniGamesEventHandler :
 
         var channelId = e.Channel.Id;
         
-        // Caching active channel IDs to prevent DB lookups for every message in every channel
-        if (!_minigameChannels.ContainsKey(channelId))
-        {
-            // Occasionally refresh cache or just check if it's really not in DB
-            // For now, let's just use AsNoTracking for the initial check.
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            var countingConfig = await db.CountingChannels.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
-            if (countingConfig != null)
-            {
-                _minigameChannels.TryAdd(channelId, 0);
-                await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, countingConfig.Id);
-                return;
-            }
-
-            var wordChainConfig = await db.WordChainConfigs.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
-            if (wordChainConfig != null)
-            {
-                _minigameChannels.TryAdd(channelId, 0);
-                await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
-                return;
-            }
-            return;
-        }
+        // Fast exit for the 99% of normal chat messages
+        if (!_minigameChannels.ContainsKey(channelId)) return;
 
         // It is a known minigame channel
         using (var scope = _scopeFactory.CreateScope())

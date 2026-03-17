@@ -28,10 +28,12 @@ public class MiniGamesCommand
     public class CountingCommands
     {
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly MiniGamesEventHandler _eventHandler;
 
-        public CountingCommands(IServiceScopeFactory scopeFactory)
+        public CountingCommands(IServiceScopeFactory scopeFactory, MiniGamesEventHandler eventHandler)
         {
             _scopeFactory = scopeFactory;
+            _eventHandler = eventHandler;
         }
 
         [DSharpPlus.Commands.Command("setup")]
@@ -48,6 +50,7 @@ public class MiniGamesCommand
             var existing = await db.CountingChannels.FirstOrDefaultAsync(c => c.GuildId == ctx.Guild.Id);
             if (existing != null)
             {
+                _eventHandler.UnregisterChannel(existing.ChannelId);
                 existing.ChannelId = channel.Id;
             }
             else
@@ -60,6 +63,7 @@ public class MiniGamesCommand
             }
 
             await db.SaveChangesAsync();
+            _eventHandler.RegisterChannel(channel.Id);
             await ctx.RespondAsync($"Der Zähl-Kanal wurde auf {channel.Mention} gesetzt!");
         }
         
@@ -92,10 +96,12 @@ public class MiniGamesCommand
     public class WordChainCommands
     {
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly MiniGamesEventHandler _eventHandler;
 
-        public WordChainCommands(IServiceScopeFactory scopeFactory)
+        public WordChainCommands(IServiceScopeFactory scopeFactory, MiniGamesEventHandler eventHandler)
         {
             _scopeFactory = scopeFactory;
+            _eventHandler = eventHandler;
         }
 
         [DSharpPlus.Commands.Command("setup")]
@@ -111,6 +117,7 @@ public class MiniGamesCommand
             var existing = await db.WordChainConfigs.FirstOrDefaultAsync(c => c.GuildId == ctx.Guild.Id);
             if (existing != null)
             {
+                _eventHandler.UnregisterChannel(existing.ChannelId);
                 existing.ChannelId = channel.Id;
             }
             else
@@ -123,6 +130,7 @@ public class MiniGamesCommand
             }
 
             await db.SaveChangesAsync();
+            _eventHandler.RegisterChannel(channel.Id);
             await ctx.RespondAsync($"Der Wortketten-Kanal wurde auf {channel.Mention} gesetzt!");
         }
         

@@ -53,5 +53,15 @@ public sealed class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(h => h.QuestionId);
         });
+
+        modelBuilder.Entity<CountingChannelConfig>(entity =>
+        {
+            entity.HasIndex(c => c.ChannelId).IsUnique();
+        });
+
+        modelBuilder.Entity<WordChainConfig>(entity =>
+        {
+            entity.HasIndex(c => c.ChannelId).IsUnique();
+        });
     }
 }

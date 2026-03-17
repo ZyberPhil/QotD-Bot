@@ -29,6 +29,19 @@ public class BlackjackImageService
         _deckPath = Path.Combine(AppContext.BaseDirectory, "UI", "images", "blackjack_deck");
     }
 
+    public void PreloadAllCards()
+    {
+        foreach (CardSuit suit in Enum.GetValues<CardSuit>())
+        {
+            foreach (CardRank rank in Enum.GetValues<CardRank>())
+            {
+                var card = new Card(suit, rank);
+                GetCardBitmap(card.GetFileName());
+            }
+        }
+        GetCardBitmap("CardBack.svg");
+    }
+
     private SKBitmap GetCardBitmap(string fileName)
     {
         return _cardCache.GetOrAdd(fileName, _ =>
