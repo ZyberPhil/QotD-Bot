@@ -44,14 +44,25 @@ public sealed class MiniGamesEventHandler :
 
     public async Task InitializeAsync()
     {
+        _logger.LogInformation("Initializing MiniGames channel cache…");
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var countingChannels = await db.CountingChannels.AsNoTracking().Select(c => new { c.ChannelId, c.Id }).ToListAsync();
-        foreach (var c in countingChannels) _minigameChannels.TryAdd(c.ChannelId, new MiniGameChannelInfo(MiniGameType.Counting, c.Id));
+        foreach (var c in countingChannels) 
+        {
+            _minigameChannels[c.ChannelId] = new MiniGameChannelInfo(MiniGameType.Counting, c.Id);
+            _logger.LogInformation("Cached Counting channel: {ChannelId} (ConfigId: {Id})", c.ChannelId, c.Id);
+        }
 
         var wordChainChannels = await db.WordChainConfigs.AsNoTracking().Select(c => new { c.ChannelId, c.Id }).ToListAsync();
-        foreach (var c in wordChainChannels) _minigameChannels.TryAdd(c.ChannelId, new MiniGameChannelInfo(MiniGameType.WordChain, c.Id));
+        foreach (var c in wordChainChannels)
+        {
+            _minigameChannels[c.ChannelId] = new MiniGameChannelInfo(MiniGameType.WordChain, c.Id);
+            _logger.LogInformation("Cached WordChain channel: {ChannelId} (ConfigId: {Id})", c.ChannelId, c.Id);
+        }
+        
+        _logger.LogInformation("MiniGames cache initialized with {Count} counting and {Count2} wordchain channels.", countingChannels.Count, wordChainChannels.Count);
     }
 
     public void RegisterChannel(ulong channelId, MiniGameType type, int configId) 
@@ -82,8 +93,17 @@ public sealed class MiniGamesEventHandler :
 
         var channelId = e.Channel.Id;
         
+        // Diagnostic log for ALL messages (Temporary for debugging)
+        _logger.LogInformation("Message in {ChannelId} from {User}: {Content}", channelId, e.Author.Username, e.Message.Content);
+
         // Fast exit for the 99% of normal chat messages
-        if (!_minigameChannels.TryGetValue(channelId, out var info)) return;
+        if (!_minigameChannels.TryGetValue(channelId, out var info)) 
+        {
+            _logger.LogDebug("Channel {ChannelId} is not a minigame channel. (Cache size: {Size})", channelId, _minigameChannels.Count);
+            return;
+        }
+
+        _logger.LogInformation("Detected minigame message in channel {ChannelId} (Type: {Type})", channelId, info.Type);
 
         // Zero-Discovery: We already know the game type and ID from our cache!
         if (info.Type == MiniGameType.Counting)

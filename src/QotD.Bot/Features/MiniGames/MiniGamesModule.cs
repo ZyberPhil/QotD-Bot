@@ -1,4 +1,6 @@
+using DSharpPlus;
 using DSharpPlus.Commands;
+using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Core;
@@ -23,9 +25,13 @@ public sealed class MiniGamesModule : IBotModule
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
         // Resolve from the main (host) container to ensure we share the SAME instance/cache
+        var handler = hostProvider.GetRequiredService<MiniGamesEventHandler>();
+        services.AddSingleton(handler);
+        services.AddSingleton<IEventHandler<MessageCreatedEventArgs>>(handler);
+        services.AddSingleton<IEventHandler<ComponentInteractionCreatedEventArgs>>(handler);
+
         services.AddSingleton(hostProvider.GetRequiredService<BlackjackService>());
         services.AddSingleton(hostProvider.GetRequiredService<BlackjackImageService>());
-        services.AddSingleton(hostProvider.GetRequiredService<MiniGamesEventHandler>());
     }
 
     public void ConfigureCommands(CommandsExtension commands)
