@@ -26,7 +26,6 @@ public sealed class MiniGamesEventHandler :
     private readonly ILogger<MiniGamesEventHandler> _logger;
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
-    private readonly Guid _instanceId = Guid.NewGuid();
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
     private static readonly ConcurrentDictionary<ulong, MiniGameChannelInfo> _minigameChannels = new();
     private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -45,7 +44,7 @@ public sealed class MiniGamesEventHandler :
 
     public async Task InitializeAsync()
     {
-        _logger.LogInformation("[{InstanceId}] Initializing MiniGames channel cache…", _instanceId);
+        _logger.LogInformation("Initializing MiniGames channel cache…");
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -94,18 +93,10 @@ public sealed class MiniGamesEventHandler :
 
         var channelId = e.Channel.Id;
         
-        // Diagnostic log for all events
-        _logger.LogInformation("[{InstanceId}] Event in {ChannelId} (Cache size: {Size})", _instanceId, channelId, _minigameChannels.Count);
-
         // Fast exit for the 99% of normal chat messages
-        if (!_minigameChannels.TryGetValue(channelId, out var info)) 
-        {
-            // Log this as information for now so the user can see it in logs
-            _logger.LogInformation("[{InstanceId}] Channel {ChannelId} is NOT in minigame cache.", _instanceId, channelId);
-            return;
-        }
+        if (!_minigameChannels.TryGetValue(channelId, out var info)) return;
 
-        _logger.LogInformation("[{InstanceId}] Detected minigame message in {ChannelId} (Type: {Type})", _instanceId, channelId, info.Type);
+        _logger.LogInformation("Detected minigame message in {ChannelId} (Type: {Type})", channelId, info.Type);
 
         // Zero-Discovery: We already know the game type and ID from our cache!
         if (info.Type == MiniGameType.Counting)
