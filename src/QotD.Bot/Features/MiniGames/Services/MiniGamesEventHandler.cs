@@ -25,6 +25,7 @@ public sealed class MiniGamesEventHandler :
     private readonly BlackjackImageService _imageService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
     private readonly ConcurrentDictionary<ulong, byte> _minigameChannels = new();
+    private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public MiniGamesEventHandler(
         IServiceScopeFactory scopeFactory,
@@ -52,6 +53,22 @@ public sealed class MiniGamesEventHandler :
 
     public void RegisterChannel(ulong channelId) => _minigameChannels.TryAdd(channelId, 0);
     public void UnregisterChannel(ulong channelId) => _minigameChannels.TryRemove(channelId, out _);
+
+    public void CleanupUnusedLocks()
+    {
+        var unusedChannelIds = _locks
+            .Where(kvp => kvp.Value.CurrentCount > 0)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var id in unusedChannelIds)
+        {
+            if (_locks.TryGetValue(id, out var semaphore) && semaphore.CurrentCount > 0)
+            {
+                _locks.TryRemove(id, out _);
+            }
+        }
+    }
 
     public async Task HandleEventAsync(DiscordClient client, MessageCreatedEventArgs e)
     {
@@ -364,7 +381,7 @@ public sealed class MiniGamesEventHandler :
             var input = message.Content.Trim().ToLower();
 
             // Validate single word with letters only (incl. German umlauts)
-            if (!Regex.IsMatch(input, "^[a-zäöüß]+$"))
+            if (!_wordRegex.IsMatch(input))
             {
                 await FailWordChainAsync(message, channel, author, db, config, "Nur einzelne Wörter aus Buchstaben (keine Zahlen, Leerzeichen)!");
                 return;

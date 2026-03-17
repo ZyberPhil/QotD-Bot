@@ -7,6 +7,12 @@ public class BlackjackService
 {
     private readonly ConcurrentDictionary<ulong, BlackjackGame> _activeGames = new();
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _userLocks = new();
+    private readonly ILogger<BlackjackService> _logger;
+
+    public BlackjackService(ILogger<BlackjackService> logger)
+    {
+        _logger = logger;
+    }
 
     public SemaphoreSlim GetLock(ulong userId)
     {
@@ -50,6 +56,38 @@ public class BlackjackService
     public void EndGame(ulong userId)
     {
         _activeGames.TryRemove(userId, out _);
+    }
+
+    public void CleanupStaleGames(TimeSpan timeout)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var staleUserIds = _activeGames
+            .Where(kvp => now - kvp.Value.LastActivity > timeout)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var userId in staleUserIds)
+        {
+            if (_activeGames.TryRemove(userId, out _))
+            {
+                _logger.LogInformation("Cleaned up stale Blackjack game for user {UserId}.", userId);
+            }
+        }
+
+        // Also cleanup unused locks to prevent RAM bloat
+        var unusedLockUserIds = _userLocks
+            .Where(kvp => kvp.Value.CurrentCount > 0) // Semaphore is not being held
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var userId in unusedLockUserIds)
+        {
+            // Only remove if it's still not being held (small race condition window is fine, GetOrAdd will just create a new one)
+            if (_userLocks.TryGetValue(userId, out var semaphore) && semaphore.CurrentCount > 0)
+            {
+                _userLocks.TryRemove(userId, out _);
+            }
+        }
     }
 
     public void Hit(ulong userId)

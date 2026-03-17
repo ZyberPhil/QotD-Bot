@@ -122,6 +122,10 @@ try
     // ── Core Services ───────────────────────────────────────────────────────────
     builder.Services.AddSingleton<DiscordBotService>();
     builder.Services.AddHostedService(s => s.GetRequiredService<DiscordBotService>());
+    builder.Services.AddSingleton<BlackjackImageService>();
+    builder.Services.AddSingleton<BlackjackService>();
+    builder.Services.AddSingleton<MiniGamesEventHandler>();
+    builder.Services.AddHostedService<BlackjackCleanupService>();
 
     var app = builder.Build();
 
