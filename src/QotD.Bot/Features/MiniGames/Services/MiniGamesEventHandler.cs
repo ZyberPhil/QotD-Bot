@@ -24,6 +24,7 @@ public sealed class MiniGamesEventHandler :
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
+    private readonly ConcurrentDictionary<ulong, byte> _minigameChannels = new();
 
     public MiniGamesEventHandler(
         IServiceScopeFactory scopeFactory,
@@ -43,23 +44,50 @@ public sealed class MiniGamesEventHandler :
         if (e.Guild is null) return;
 
         var channelId = e.Channel.Id;
-
-        // Fast check before getting a lock
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var countingConfig = await db.CountingChannels.FirstOrDefaultAsync(c => c.ChannelId == channelId);
-        if (countingConfig != null)
+        
+        // Caching active channel IDs to prevent DB lookups for every message in every channel
+        if (!_minigameChannels.ContainsKey(channelId))
         {
-            await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, countingConfig.Id);
+            // Occasionally refresh cache or just check if it's really not in DB
+            // For now, let's just use AsNoTracking for the initial check.
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var countingConfig = await db.CountingChannels.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
+            if (countingConfig != null)
+            {
+                _minigameChannels.TryAdd(channelId, 0);
+                await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, countingConfig.Id);
+                return;
+            }
+
+            var wordChainConfig = await db.WordChainConfigs.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
+            if (wordChainConfig != null)
+            {
+                _minigameChannels.TryAdd(channelId, 0);
+                await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
+                return;
+            }
             return;
         }
 
-        var wordChainConfig = await db.WordChainConfigs.FirstOrDefaultAsync(c => c.ChannelId == channelId);
-        if (wordChainConfig != null)
+        // It is a known minigame channel
+        using (var scope = _scopeFactory.CreateScope())
         {
-            await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
-            return;
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var countingConfig = await db.CountingChannels.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
+            if (countingConfig != null)
+            {
+                await HandleCountingAsync(e.Message, e.Channel, e.Guild, e.Author, countingConfig.Id);
+                return;
+            }
+
+            var wordChainConfig = await db.WordChainConfigs.AsNoTracking().FirstOrDefaultAsync(c => c.ChannelId == channelId);
+            if (wordChainConfig != null)
+            {
+                await HandleWordChainAsync(e.Message, e.Channel, e.Guild, e.Author, wordChainConfig.Id);
+                return;
+            }
         }
     }
 

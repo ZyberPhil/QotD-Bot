@@ -56,6 +56,7 @@ try
 
     // ── API Controllers ────────────────────────────────────────────────────────
     builder.Services.AddControllers();
+    builder.Services.AddMemoryCache();
 
     // ── Serilog (full configuration from appsettings.json) ─────────────────────
     builder.Services.AddSerilog((services, loggerConfig) =>

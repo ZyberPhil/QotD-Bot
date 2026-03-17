@@ -16,6 +16,12 @@ public class BlackjackImageService
     private const int CardWidth = 120;
     private const int CardHeight = 180;
     private const int CardOverlap = 30; // Horizontal overlap between cards
+    private static readonly SKFont _labelFont = new(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 24);
+    private static readonly SKPaint _labelPaint = new()
+    {
+        Color = SKColors.White,
+        IsAntialias = true
+    };
 
     public BlackjackImageService()
     {
@@ -112,20 +118,13 @@ public class BlackjackImageService
         using var canvas = new SKCanvas(tableBitmap);
         canvas.Clear(SKColors.Transparent);
 
-        using var font = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 24);
-        using var paint = new SKPaint
-        {
-            Color = SKColors.White,
-            IsAntialias = true
-        };
-
         // Draw Dealer Hand
-        canvas.DrawText("Dealer Hand:", 0, 25, SKTextAlign.Left, font, paint);
+        canvas.DrawText("Dealer Hand:", 0, 25, SKTextAlign.Left, _labelFont, _labelPaint);
         canvas.DrawBitmap(dealerHandBitmap, 0, 35);
 
         // Draw Player Hand
         int playerY = dealerHandBitmap.Height + margin + 35;
-        canvas.DrawText("Your Hand:", 0, playerY, SKTextAlign.Left, font, paint);
+        canvas.DrawText("Your Hand:", 0, playerY, SKTextAlign.Left, _labelFont, _labelPaint);
         canvas.DrawBitmap(playerHandBitmap, 0, playerY + 10);
 
         using var image = SKImage.FromBitmap(tableBitmap);

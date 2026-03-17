@@ -51,19 +51,24 @@ public sealed class QotDBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var configs = await db.GuildConfigs.ToListAsync(ct);
+        var configs = await db.GuildConfigs.AsNoTracking().ToListAsync(ct);
         if (configs.Count == 0) return;
 
-        foreach (var config in configs)
+        await Parallel.ForEachAsync(configs, ct, async (config, token) =>
         {
-            if (config.ChannelId == 0) continue;
+            if (config.ChannelId == 0) return;
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById(config.Timezone);
             var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
 
             if (nowLocal.Hour == config.PostTime.Hour && nowLocal.Minute == config.PostTime.Minute)
-                await TryPostForGuildAsync(db, config, nowLocal.Date, ct);
-        }
+            {
+                // We need a fresh scope/DB context for each parallel execution to avoid threading issues
+                using var innerScope = scopeFactory.CreateScope();
+                var innerDb = innerScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                await TryPostForGuildAsync(innerDb, config, nowLocal.Date, token);
+            }
+        });
     }
 
     private async Task TryPostForGuildAsync(
@@ -71,7 +76,7 @@ public sealed class QotDBackgroundService(
     {
         var dateOnly = DateOnly.FromDateTime(localDate);
 
-        var question = await db.Questions
+        var question = await db.Questions.AsNoTracking()
             .FirstOrDefaultAsync(q => q.ScheduledFor == dateOnly, ct);
 
         if (question == null)
@@ -81,7 +86,7 @@ public sealed class QotDBackgroundService(
             return;
         }
 
-        var alreadyPosted = await db.GuildHistories
+        var alreadyPosted = await db.GuildHistories.AsNoTracking()
             .AnyAsync(h => h.GuildId == config.GuildId && h.QuestionId == question.Id, ct);
         if (alreadyPosted) return;
 
