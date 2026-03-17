@@ -14,12 +14,18 @@ public sealed class MiniGamesModule : IBotModule
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<BlackjackService>();
+        services.AddSingleton<BlackjackImageService>();
+        services.AddSingleton<MiniGamesEventHandler>();
+        services.AddHostedService<BlackjackCleanupService>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
-        services.AddSingleton<BlackjackService>();
-        services.AddSingleton<BlackjackImageService>();
+        // Resolve from the main (host) container to ensure we share the SAME instance/cache
+        services.AddSingleton(hostProvider.GetRequiredService<BlackjackService>());
+        services.AddSingleton(hostProvider.GetRequiredService<BlackjackImageService>());
+        services.AddSingleton(hostProvider.GetRequiredService<MiniGamesEventHandler>());
     }
 
     public void ConfigureCommands(CommandsExtension commands)
