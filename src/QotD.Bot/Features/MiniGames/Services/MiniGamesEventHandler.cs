@@ -132,19 +132,19 @@ public sealed class MiniGamesEventHandler :
             // Handle Play Again separately as it has a different ID format
             if (id.StartsWith("bj_play_again_"))
             {
-                 if (ulong.TryParse(id.Substring("bj_play_again_".Length), out var pid))
+                 // Custom ID format: bj_play_again_userId_bet
+                 var partsPlayAgain = id.Split('_');
+                 if (partsPlayAgain.Length >= 4 && ulong.TryParse(partsPlayAgain[3], out var pid))
                  {
                      // Only the player who started the original game can click "Play Again"
                      if (e.User.Id != pid)
                      {
                          await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                             .WithContent("Dies ist nicht dein Spiel! Starte ein eigenes mit `/minigames blackjack play`.")
+                             .WithContent("Dies ist nicht dein Spiel! Starte ein eigenes mit `/blackjack`.")
                              .AsEphemeral(true));
                          return;
                      }
 
-                     // Custom ID format: bj_play_again_userId_bet
-                     var partsPlayAgain = id.Split('_');
                      int playAgainBet = 0;
                      if (partsPlayAgain.Length >= 5)
                      {
