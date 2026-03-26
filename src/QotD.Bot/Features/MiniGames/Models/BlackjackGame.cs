@@ -22,9 +22,12 @@ public class BlackjackGame
     public GameStatus Status { get; set; } = GameStatus.Playing;
     public DateTimeOffset LastActivity { get; set; } = DateTimeOffset.UtcNow;
 
-    public BlackjackGame(ulong userId)
+    public int Bet { get; }
+
+    public BlackjackGame(ulong userId, int bet)
     {
         UserId = userId;
+        Bet = bet;
     }
 
     public int GetHandValue(List<Card> hand)

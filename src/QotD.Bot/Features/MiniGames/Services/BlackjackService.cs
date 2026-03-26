@@ -19,9 +19,9 @@ public class BlackjackService
         return _userLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
     }
 
-    public BlackjackGame StartGame(ulong userId)
+    public BlackjackGame StartGame(ulong userId, int bet)
     {
-        var game = new BlackjackGame(userId);
+        var game = new BlackjackGame(userId, bet);
         _activeGames[userId] = game;
         return game;
     }

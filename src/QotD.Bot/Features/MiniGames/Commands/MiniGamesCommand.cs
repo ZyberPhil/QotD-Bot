@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.Features.Economy.Services;
 using QotD.Bot.Features.MiniGames.Models;
 using QotD.Bot.Features.MiniGames.Services;
 using QotD.Bot.UI;
@@ -155,23 +156,41 @@ public class BlackjackCommands
 {
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
+    private readonly EconomyService _economyService;
 
-    public BlackjackCommands(BlackjackService blackjackService, BlackjackImageService imageService)
+    public BlackjackCommands(BlackjackService blackjackService, BlackjackImageService imageService, EconomyService economyService)
     {
         _blackjackService = blackjackService;
         _imageService = imageService;
+        _economyService = economyService;
     }
 
     [DSharpPlus.Commands.Command("blackjack")]
     [Description("Startet eine Runde Blackjack")]
-    public async ValueTask PlayAsync(CommandContext ctx)
+    public async ValueTask PlayAsync(CommandContext ctx, 
+        [Description("Dein Einsatz (Coins)")] int bet = 0)
     {
         var userLock = _blackjackService.GetLock(ctx.User.Id);
         await userLock.WaitAsync();
 
         try
         {
-            var game = _blackjackService.StartGame(ctx.User.Id);
+            if (bet > 0)
+            {
+                var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
+                if (!economyResult.IsApiAvailable)
+                {
+                    bet = 0;
+                    await ctx.RespondAsync("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                }
+                else if (!economyResult.IsSuccess)
+                {
+                    await ctx.RespondAsync($"❌ {economyResult.ErrorMessage}");
+                    return;
+                }
+            }
+
+            var game = _blackjackService.StartGame(ctx.User.Id, bet);
             
             // First response: Player's first card
             _blackjackService.DealToPlayer(game);

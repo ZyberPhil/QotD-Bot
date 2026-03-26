@@ -4,6 +4,7 @@ using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Core;
+using QotD.Bot.Features.Economy.Services;
 using QotD.Bot.Features.MiniGames.Commands;
 using QotD.Bot.Features.MiniGames.Services;
 
@@ -19,6 +20,7 @@ public sealed class MiniGamesModule : IBotModule
         services.AddSingleton<BlackjackService>();
         services.AddSingleton<BlackjackImageService>();
         services.AddSingleton<TowerService>();
+        services.AddHttpClient<EconomyService>();
         services.AddSingleton<MiniGamesEventHandler>();
         services.AddHostedService<BlackjackCleanupService>();
     }
@@ -34,6 +36,7 @@ public sealed class MiniGamesModule : IBotModule
         services.AddSingleton(hostProvider.GetRequiredService<BlackjackService>());
         services.AddSingleton(hostProvider.GetRequiredService<BlackjackImageService>());
         services.AddSingleton(hostProvider.GetRequiredService<TowerService>());
+        services.AddTransient(s => hostProvider.GetRequiredService<EconomyService>());
     }
 
     public void ConfigureCommands(CommandsExtension commands)

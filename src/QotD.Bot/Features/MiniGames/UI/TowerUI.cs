@@ -46,7 +46,7 @@ public static class TowerUI
         else
         {
             builder.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] {
-                new DiscordButtonComponent(DiscordButtonStyle.Primary, $"tower_play_again_{game.UserId}", "Nochmal Spielen")
+                new DiscordButtonComponent(DiscordButtonStyle.Primary, $"tower_play_again_{game.UserId}_{game.Bet}", "Nochmal Spielen")
             }));
         }
 

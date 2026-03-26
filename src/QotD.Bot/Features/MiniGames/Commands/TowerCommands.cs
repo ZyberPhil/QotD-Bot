@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DSharpPlus.Commands;
+using QotD.Bot.Features.Economy.Services;
 using QotD.Bot.Features.MiniGames.Services;
 using QotD.Bot.UI;
 
@@ -8,10 +9,12 @@ namespace QotD.Bot.Features.MiniGames.Commands;
 public class TowerCommands
 {
     private readonly TowerService _towerService;
+    private readonly EconomyService _economyService;
 
-    public TowerCommands(TowerService towerService)
+    public TowerCommands(TowerService towerService, EconomyService economyService)
     {
         _towerService = towerService;
+        _economyService = economyService;
     }
 
     [Command("tower")]
@@ -24,6 +27,21 @@ public class TowerCommands
 
         try
         {
+            if (bet > 0)
+            {
+                var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
+                if (!economyResult.IsApiAvailable)
+                {
+                    bet = 0;
+                    await ctx.RespondAsync("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                }
+                else if (!economyResult.IsSuccess)
+                {
+                    await ctx.RespondAsync($"❌ {economyResult.ErrorMessage}");
+                    return;
+                }
+            }
+
             var game = _towerService.StartGame(ctx.User.Id, bet);
             var response = TowerUI.BuildResponse(game);
             await ctx.RespondAsync(response);

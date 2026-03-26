@@ -31,7 +31,7 @@ public static class BlackjackUI
         else if (showButtons)
         {
             builder.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] {
-                new DiscordButtonComponent(DiscordButtonStyle.Success, $"bj_play_again_{game.UserId}", "Play Again")
+                new DiscordButtonComponent(DiscordButtonStyle.Success, $"bj_play_again_{game.UserId}_{game.Bet}", "Play Again")
             }));
         }
 
