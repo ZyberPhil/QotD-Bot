@@ -26,6 +26,7 @@ public sealed class MiniGamesEventHandler :
     private readonly ILogger<MiniGamesEventHandler> _logger;
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
+    private readonly TowerService _towerService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
     private static readonly ConcurrentDictionary<ulong, MiniGameChannelInfo> _minigameChannels = new();
     private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -34,12 +35,14 @@ public sealed class MiniGamesEventHandler :
         IServiceScopeFactory scopeFactory,
         ILogger<MiniGamesEventHandler> logger,
         BlackjackService blackjackService,
-        BlackjackImageService imageService)
+        BlackjackImageService imageService,
+        TowerService towerService)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _blackjackService = blackjackService;
         _imageService = imageService;
+        _towerService = towerService;
     }
 
     public async Task InitializeAsync()
@@ -112,6 +115,11 @@ public sealed class MiniGamesEventHandler :
     public async Task HandleEventAsync(DiscordClient client, ComponentInteractionCreatedEventArgs e)
     {
         var id = e.Id;
+        if (id.StartsWith("tower_"))
+        {
+            await HandleTowerInteractionAsync(e);
+            return;
+        }
         if (!id.StartsWith("bj_")) return;
 
         // Use a per-user lock for all Blackjack interactions to prevent race conditions
@@ -286,6 +294,92 @@ public sealed class MiniGamesEventHandler :
             userLock.Release();
         }
     }
+
+    private async Task HandleTowerInteractionAsync(ComponentInteractionCreatedEventArgs e)
+    {
+        var id = e.Id;
+        var parts = id.Split('_'); // tower_pick_userId_tileIndex OR tower_cashout_userId OR tower_play_again_userId
+        if (parts.Length < 3) return;
+
+        var action = parts[1];
+        if (!Guid.TryParse(parts[2], out var gameId) && !ulong.TryParse(parts[2], out var _))
+        {
+            // Fallback for play_again which has format tower_play_again_userId
+            if (action == "play" && parts.Length >= 4 && parts[2] == "again")
+            {
+                if (!ulong.TryParse(parts[3], out var playAgainUserId)) return;
+                
+                if (e.User.Id != playAgainUserId)
+                {
+                    await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                        .WithContent("Dies ist nicht dein Spiel!").AsEphemeral(true));
+                    return;
+                }
+
+                // Default bet for play again (could be pulled from history, but here just use a default or 100)
+                var newGame = _towerService.StartGame(playAgainUserId, 100);
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, TowerUI.BuildResponse(newGame));
+                return;
+            }
+            return;
+        }
+
+        var activeGame = _towerService.GetGame(e.User.Id);
+
+        // Active game safety checks
+        if (activeGame == null || activeGame.Id.ToString() != parts[2] && parts[2] != e.User.Id.ToString())
+        {
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                .WithContent("Dies ist nicht dein Spiel oder das Spiel ist abgelaufen!").AsEphemeral(true));
+            return;
+        }
+
+        if (activeGame.Status != TowerStatus.Playing)
+        {
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                .WithContent("Dieses Spiel ist bereits beendet.").AsEphemeral(true));
+            return;
+        }
+
+        var userLock = _towerService.GetLock(e.User.Id);
+        await userLock.WaitAsync();
+
+        try
+        {
+            // Re-check status inside lock
+            if (activeGame.Status != TowerStatus.Playing) return;
+
+            if (action == "pick" && parts.Length >= 4)
+            {
+                if (int.TryParse(parts[3], out var tileIndex))
+                {
+                    _towerService.PickTile(activeGame, tileIndex);
+                }
+            }
+            else if (action == "cashout")
+            {
+                _towerService.CashOut(activeGame);
+            }
+
+            // Always update UI
+            var response = TowerUI.BuildResponse(activeGame);
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, response);
+
+            if (activeGame.Status != TowerStatus.Playing)
+            {
+                _towerService.EndGame(e.User.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling Tower interaction {InteractionId}", id);
+        }
+        finally
+        {
+            userLock.Release();
+        }
+    }
+
 
     private async Task HandleCountingAsync(DiscordMessage message, DiscordChannel channel, DiscordGuild guild, DiscordUser author, int configId)
     {

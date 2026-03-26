@@ -5,6 +5,7 @@ namespace QotD.Bot.Features.MiniGames.Services;
 
 public sealed class BlackjackCleanupService(
     BlackjackService blackjackService,
+    TowerService towerService,
     MiniGamesEventHandler eventHandler,
     ILogger<BlackjackCleanupService> logger) : BackgroundService
 {
@@ -17,6 +18,7 @@ public sealed class BlackjackCleanupService(
             try
             {
                 blackjackService.CleanupStaleGames(TimeSpan.FromMinutes(10));
+                towerService.CleanupStaleGames(TimeSpan.FromMinutes(10));
                 eventHandler.CleanupUnusedLocks();
             }
             catch (Exception ex)
