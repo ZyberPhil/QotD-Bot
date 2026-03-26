@@ -27,13 +27,14 @@ public class TowerCommands
 
         try
         {
+            bool apiOffline = false;
             if (bet > 0)
             {
                 var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
                 if (!economyResult.IsApiAvailable)
                 {
                     bet = 0;
-                    await ctx.RespondAsync("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                    apiOffline = true;
                 }
                 else if (!economyResult.IsSuccess)
                 {
@@ -44,6 +45,7 @@ public class TowerCommands
 
             var game = _towerService.StartGame(ctx.User.Id, bet);
             var response = TowerUI.BuildResponse(game);
+            if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
             await ctx.RespondAsync(response);
         }
         catch (Exception)

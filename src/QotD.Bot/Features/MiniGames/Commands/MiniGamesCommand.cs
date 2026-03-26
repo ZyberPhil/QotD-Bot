@@ -175,13 +175,14 @@ public class BlackjackCommands
 
         try
         {
+            bool apiOffline = false;
             if (bet > 0)
             {
                 var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
                 if (!economyResult.IsApiAvailable)
                 {
                     bet = 0;
-                    await ctx.RespondAsync("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                    apiOffline = true;
                 }
                 else if (!economyResult.IsSuccess)
                 {
@@ -195,8 +196,10 @@ public class BlackjackCommands
             // First response: Player's first card
             _blackjackService.DealToPlayer(game);
             var img1 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
+            var initialResponse = BlackjackUI.BuildResponse(game, img1, showButtons: false);
+            if (apiOffline) initialResponse.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
             // Hide buttons during initial deal animation
-            await ctx.RespondAsync(BlackjackUI.BuildResponse(game, img1, showButtons: false));
+            await ctx.RespondAsync(initialResponse);
 
             // 2nd card: Dealer (hidden)
             await Task.Delay(1000);

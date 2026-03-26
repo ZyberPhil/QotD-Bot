@@ -151,6 +151,7 @@ public sealed class MiniGamesEventHandler :
                          int.TryParse(partsPlayAgain[4], out playAgainBet);
                      }
 
+                     bool apiOffline = false;
                      if (playAgainBet > 0)
                      {
                          using var scope = _scopeFactory.CreateScope();
@@ -159,9 +160,7 @@ public sealed class MiniGamesEventHandler :
                          if (!economyResult.IsApiAvailable)
                          {
                              playAgainBet = 0;
-                             await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                                 .WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)")
-                                 .AsEphemeral(true));
+                             apiOffline = true;
                          }
                          else if (!economyResult.IsSuccess)
                          {
@@ -177,8 +176,11 @@ public sealed class MiniGamesEventHandler :
                      // Initial deal animation for Play Again
                      _blackjackService.DealToPlayer(g);
                      var img1 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
+                     var initialResponse = BlackjackUI.BuildResponse(g, img1, showButtons: false);
+                     if (apiOffline) initialResponse.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                     
                      // Hide buttons during animation to prevent early "Hit" clicks
-                     await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, BlackjackUI.BuildResponse(g, img1, showButtons: false));
+                     await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, initialResponse);
 
                      await Task.Delay(1000);
                      _blackjackService.DealToDealer(g);
@@ -382,6 +384,7 @@ public sealed class MiniGamesEventHandler :
                     int.TryParse(parts[4], out playAgainBet);
                 }
 
+                bool apiOffline = false;
                 if (playAgainBet > 0)
                 {
                     using var scope = _scopeFactory.CreateScope();
@@ -390,9 +393,7 @@ public sealed class MiniGamesEventHandler :
                     if (!economyResult.IsApiAvailable)
                     {
                         playAgainBet = 0;
-                        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                            .WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)")
-                            .AsEphemeral(true));
+                        apiOffline = true;
                     }
                     else if (!economyResult.IsSuccess)
                     {
@@ -404,7 +405,9 @@ public sealed class MiniGamesEventHandler :
                 }
 
                 var newGame = _towerService.StartGame(playAgainUserId, playAgainBet);
-                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, TowerUI.BuildResponse(newGame));
+                var response = TowerUI.BuildResponse(newGame);
+                if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, response);
                 return;
             }
             return;
