@@ -31,6 +31,12 @@ public sealed class TempVoiceEventHandler :
 
     public async Task HandleEventAsync(DiscordClient client, VoiceStateUpdatedEventArgs e)
     {
+        _logger.LogInformation("VOICE_EVENT: User {UserId}, Guild {GuildId}, Before: {BeforeId}, After: {AfterId}", 
+            e.After?.UserId ?? e.Before?.UserId, 
+            e.After?.GuildId ?? e.Before?.GuildId,
+            e.Before?.ChannelId, 
+            e.After?.ChannelId);
+
         var beforeChannelId = e.Before?.ChannelId ?? 0;
         var afterChannelId = e.After?.ChannelId ?? 0;
         var userId = e.Before?.UserId ?? e.After?.UserId ?? 0;
