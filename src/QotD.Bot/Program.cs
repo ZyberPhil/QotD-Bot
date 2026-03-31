@@ -108,7 +108,7 @@ try
                     module.ConfigureDiscordServices(services, s);
                 }
             })
-            .ConfigureEventHandlers(b => b.AddEventHandlers([typeof(MiniGamesEventHandler), typeof(QotD.Bot.Features.Logging.Services.LogSetupEventHandler), typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler)]))
+            .ConfigureEventHandlers(b => b.AddEventHandlers([typeof(MiniGamesEventHandler), typeof(QotD.Bot.Features.Logging.Services.LogSetupEventHandler), typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler), typeof(QotD.Bot.Features.General.Services.HelpMenuEventHandler)]))
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {
