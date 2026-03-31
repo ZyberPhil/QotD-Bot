@@ -41,33 +41,40 @@ public sealed class TempVoiceEventHandler :
         // 1. Handle user leaving a temp channel (cleanup)
         if (beforeChannelId != 0 && _tempChannels.ContainsKey(beforeChannelId))
         {
-            _logger.LogDebug("User {UserId} left potentially temp channel {ChannelId}", userId, beforeChannelId);
+            _logger.LogInformation("Cleaning up channel {ChannelId} because user {UserId} left. (Gate before: {Before}, After: {After})", 
+                beforeChannelId, userId, beforeChannelId, afterChannelId);
             
-            // Give the cache a moment to update user counts
-            await Task.Delay(500);
+            // Give the cache a bit more time to update
+            await Task.Delay(1000);
 
             try
             {
-                var oldChannel = await client.GetChannelAsync(beforeChannelId);
-                var userCount = oldChannel.Users.Count;
+                var guild = await client.GetGuildAsync(guildId);
+                var oldChannel = guild.Channels.GetValueOrDefault(beforeChannelId);
                 
-                _logger.LogDebug("Temp channel {ChannelId} currently has {Count} users", beforeChannelId, userCount);
+                if (oldChannel == null)
+                {
+                    _logger.LogInformation("Temp channel {ChannelId} already gone.", beforeChannelId);
+                    _tempChannels.TryRemove(beforeChannelId, out _);
+                    return;
+                }
+
+                var userCount = oldChannel.Users.Count;
+                _logger.LogInformation("Temp channel {ChannelId} currently has {Count} users.", beforeChannelId, userCount);
 
                 if (userCount == 0)
                 {
-                    _tempChannels.TryRemove(beforeChannelId, out _);
-                    await oldChannel.DeleteAsync("Temp voice channel empty");
-                    _logger.LogInformation("Deleted empty temp channel {ChannelId}", beforeChannelId);
+                    if (_tempChannels.TryRemove(beforeChannelId, out _))
+                    {
+                        await oldChannel.DeleteAsync("Temp voice channel empty");
+                        _logger.LogInformation("Successfully deleted empty temp channel {ChannelId}", beforeChannelId);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId}", beforeChannelId);
-                // If it fails (e.g. 404), still try to remove from dictionary if we suspect it's gone
-                if (ex.Message.Contains("404"))
-                {
-                   _tempChannels.TryRemove(beforeChannelId, out _);
-                }
+                if (ex.Message.Contains("404")) _tempChannels.TryRemove(beforeChannelId, out _);
             }
         }
 
