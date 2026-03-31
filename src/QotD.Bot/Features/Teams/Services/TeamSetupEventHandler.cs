@@ -149,7 +149,17 @@ public sealed class TeamSetupEventHandler :
 
         var channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
         var roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", false, 1, 10);
-        
+        if (config?.TrackedRoles != null && config.TrackedRoles.Length > 0)
+        {
+            var defaults = config.TrackedRoles
+                .Select(id => new DiscordSelectDefaultValue(id, DiscordSelectDefaultValueType.Role));
+            
+            if (roleSelect.DefaultValues is List<DiscordSelectDefaultValue> list)
+            {
+                list.AddRange(defaults);
+            }
+        }
+
         var btnTemplate = new DiscordButtonComponent(DiscordButtonStyle.Primary, "teamsetup_template", "Edit Template");
         var btnRefresh = new DiscordButtonComponent(DiscordButtonStyle.Success, "teamsetup_refresh", "Force Refresh List");
 

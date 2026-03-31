@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DSharpPlus.Entities;
@@ -9,16 +10,25 @@ namespace tmpTest
     {
         static void Main()
         {
-            var asm = typeof(DiscordUser).Assembly;
-            var targetType = typeof(System.Collections.Generic.IEnumerable<DiscordSelectDefaultValue>);
-            var typesWithCtors = asm.GetTypes()
-                .SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
-                .Where(c => c.GetParameters().Any(p => targetType.IsAssignableFrom(p.ParameterType)))
-                .Select(c => c.DeclaringType.Name)
-                .Distinct()
-                .ToList();
-            
-            Console.WriteLine("Types with constructors taking IEnumerable<DiscordSelectDefaultValue>: " + string.Join(", ", typesWithCtors));
+            var roleSelect = new DiscordRoleSelectComponent("test", "test");
+            var prop = roleSelect.GetType().GetProperty("DefaultValues");
+            var val = prop?.GetValue(roleSelect);
+            if (val != null)
+            {
+                Console.WriteLine("DefaultValues implementation type: " + val.GetType().FullName);
+                if (val is List<DiscordSelectDefaultValue>)
+                {
+                    Console.WriteLine("It is a List!");
+                }
+                else if (val is IList<DiscordSelectDefaultValue>)
+                {
+                    Console.WriteLine("It is an IList!");
+                }
+            }
+            else
+            {
+                Console.WriteLine("DefaultValues is null by default.");
+            }
         }
     }
 }
