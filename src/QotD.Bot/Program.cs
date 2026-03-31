@@ -116,7 +116,8 @@ try
                 typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler), 
                 typeof(QotD.Bot.Features.General.Services.HelpMenuEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamSetupEventHandler),
-                typeof(QotD.Bot.Features.Teams.Services.TeamListEventHandler)
+                typeof(QotD.Bot.Features.Teams.Services.TeamListEventHandler),
+                typeof(QotD.Bot.Features.TempVoice.Services.TempVoiceEventHandler)
             ]))
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>

@@ -1,6 +1,6 @@
 ﻿Build started...
 Build succeeded.
-[19:46:10 FTL] : Host terminated unexpectedly
+[20:43:34 FTL] : Host terminated unexpectedly
 Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
    at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
    at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)

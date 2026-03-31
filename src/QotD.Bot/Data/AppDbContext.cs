@@ -25,6 +25,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<UserBirthday> UserBirthdays => Set<UserBirthday>();
     public DbSet<BirthdayConfig> BirthdayConfigs => Set<BirthdayConfig>();
 
+    // TempVoice
+    public DbSet<TempVoiceConfig> TempVoiceConfigs => Set<TempVoiceConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -80,6 +83,12 @@ public sealed class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<BirthdayConfig>(entity =>
+        {
+            entity.HasKey(c => c.GuildId);
+            entity.Property(c => c.GuildId).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<TempVoiceConfig>(entity =>
         {
             entity.HasKey(c => c.GuildId);
             entity.Property(c => c.GuildId).ValueGeneratedNever();
