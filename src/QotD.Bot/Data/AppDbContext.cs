@@ -21,6 +21,10 @@ public sealed class AppDbContext : DbContext
     // Teams
     public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
 
+    // Birthdays
+    public DbSet<UserBirthday> UserBirthdays => Set<UserBirthday>();
+    public DbSet<BirthdayConfig> BirthdayConfigs => Set<BirthdayConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -68,6 +72,17 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<WordChainConfig>(entity =>
         {
             entity.HasIndex(c => c.ChannelId).IsUnique();
+        });
+
+        modelBuilder.Entity<UserBirthday>(entity =>
+        {
+            entity.HasIndex(b => new { b.MemberId, b.GuildId }).IsUnique();
+        });
+
+        modelBuilder.Entity<BirthdayConfig>(entity =>
+        {
+            entity.HasKey(c => c.GuildId);
+            entity.Property(c => c.GuildId).ValueGeneratedNever();
         });
     }
 }

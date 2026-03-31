@@ -31,7 +31,8 @@ try
         new TempVoiceModule(),
         new QotD.Bot.Features.MiniGames.MiniGamesModule(),
         new QotD.Bot.Features.Logging.LoggingModule(),
-        new QotD.Bot.Features.Teams.TeamsModule()
+        new QotD.Bot.Features.Teams.TeamsModule(),
+        new QotD.Bot.Features.Birthdays.BirthdaysModule()
     ];
 
     // ── Configuration ──────────────────────────────────────────────────────────
