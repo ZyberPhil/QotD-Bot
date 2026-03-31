@@ -65,8 +65,11 @@ public sealed class TeamListService
                         var block = config.CustomTemplate
                             .Replace("{RoleName}", role.Name)
                             .Replace("{RoleMention}", role.Mention)
+                            .Replace("{rank}", role.Mention) // Alias for mention
                             .Replace("{MemberCount}", membersWithRole.Count.ToString())
-                            .Replace("{MembersList}", membersList);
+                            .Replace("{count}", membersWithRole.Count.ToString()) // Alias for count
+                            .Replace("{MembersList}", membersList)
+                            .Replace("{text}", membersList); // Alias for text
                         sb.AppendLine(block);
                     }
                     else

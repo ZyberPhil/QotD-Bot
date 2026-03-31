@@ -1,6 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
@@ -10,8 +11,7 @@ using System.Text;
 namespace QotD.Bot.Features.Teams.Services;
 
 public sealed class TeamSetupEventHandler : 
-    IEventHandler<ComponentInteractionCreatedEventArgs>,
-    IEventHandler<ModalSubmittedEventArgs>
+    IEventHandler<ComponentInteractionCreatedEventArgs>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly TeamListService _teamListService;
@@ -38,21 +38,35 @@ public sealed class TeamSetupEventHandler :
 
         if (e.Interaction.Data.CustomId == "teamsetup_template")
         {
-            // Open a Modal
-            var modal = new DiscordModalBuilder();
-            modal.CustomId = "teamsetup_template_modal";
-            modal.Title = "Edit Custom Template";
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, 
+                new DiscordInteractionResponseBuilder()
+                    .WithContent("📝 **Please send the new template in this channel.**\n" +
+                                 "Placeholders: `{rank}`, `{text}`, `{count}`\n" +
+                                 "Type `cancel` to abort.")
+                    .AsEphemeral());
             
-            modal.AddTextInput(new DiscordTextInputComponent(
-                "Template String", 
-                "template_text", 
-                "Enter template...", 
-                false,
-                DiscordTextInputStyle.Paragraph,
-                0,
-                2000), "Template String", "Customize the team list format");
+            var interactivity = client.GetInteractivity();
+            var response = await interactivity.WaitForMessageAsync(m => m.Author.Id == e.Interaction.User.Id && m.ChannelId == e.Interaction.ChannelId, TimeSpan.FromMinutes(2));
+            
+            if (response.TimedOut || response.Result.Content.ToLower() == "cancel")
+            {
+                await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("❌ Template update cancelled or timed out."));
+                return;
+            }
 
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
+            var newTemplate = response.Result.Content;
+            
+            using var updScope = _serviceProvider.CreateScope();
+            var updDb = updScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var updConfig = await updDb.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+            if (updConfig == null) { updConfig = new TeamListConfig { GuildId = guildId }; updDb.TeamListConfigs.Add(updConfig); }
+            
+            updConfig.CustomTemplate = newTemplate;
+            await updDb.SaveChangesAsync();
+
+            await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("✅ Template updated!"));
+            await _teamListService.RefreshTeamListAsync(client, guildId);
+            await RefreshSetupPanelAsync(e, updConfig);
             return;
         }
 
@@ -92,38 +106,7 @@ public sealed class TeamSetupEventHandler :
         await RefreshSetupPanelAsync(e, config);
     }
 
-    public async Task HandleEventAsync(DiscordClient client, ModalSubmittedEventArgs e)
-    {
-        if (e.Interaction.Data.CustomId != "teamsetup_template_modal") return;
 
-        var member = e.Interaction.User as DiscordMember;
-        if (e.Interaction.GuildId == null || member == null || e.Interaction.Channel == null || !member.PermissionsIn(e.Interaction.Channel).HasPermission(DiscordPermission.ManageGuild)) return;
-
-        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
-
-        string? templateText = null;
-        if (e.Values.TryGetValue("template_text", out var submission))
-        {
-            if (submission is DSharpPlus.EventArgs.TextInputModalSubmission textInput)
-            {
-                templateText = textInput.Value;
-            }
-        }
-
-        using var scope = _serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == e.Interaction.GuildId.Value);
-        if (config != null)
-        {
-            config.CustomTemplate = string.IsNullOrWhiteSpace(templateText) ? null : templateText;
-            await db.SaveChangesAsync();
-            
-            // We can't trivially use e.Interaction.EditOriginalResponseAsync to update the panel unless we fetch it.
-            // But we can trigger a refresh of the actual team list message
-            await _teamListService.RefreshTeamListAsync(client, e.Interaction.GuildId.Value);
-        }
-    }
 
     private async Task RefreshSetupPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig config)
     {
