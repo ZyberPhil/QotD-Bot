@@ -1,6 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,10 +46,10 @@ public sealed class TeamSetupEventHandler :
                                  "Type `cancel` to abort.")
                     .AsEphemeral());
             
-            var interactivity = client.GetInteractivity();
+            var interactivity = client.ServiceProvider.GetRequiredService<InteractivityExtension>();
             var response = await interactivity.WaitForMessageAsync(m => m.Author.Id == e.Interaction.User.Id && m.ChannelId == e.Interaction.ChannelId, TimeSpan.FromMinutes(2));
             
-            if (response.TimedOut || response.Result.Content.ToLower() == "cancel")
+            if (response.TimedOut || response.Result == null || response.Result.Content.ToLower() == "cancel")
             {
                 await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("❌ Template update cancelled or timed out."));
                 return;

@@ -50,7 +50,7 @@ public sealed class TeamListService
             var trackedRoles = config.TrackedRoles
                 .Select(id => guild.Roles.GetValueOrDefault(id))
                 .Where(r => r != null)
-                .OrderByDescending(r => r.Position)
+                .OrderByDescending(r => r?.Position ?? 0)
                 .ToList();
 
             foreach (var role in trackedRoles)
