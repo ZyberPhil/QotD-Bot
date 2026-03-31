@@ -11,11 +11,11 @@ public sealed class TeamsModule : IBotModule
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddTransient<TeamListService>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
+        services.AddTransient<TeamListService>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)
