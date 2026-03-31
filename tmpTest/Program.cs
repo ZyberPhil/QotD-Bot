@@ -1,18 +1,20 @@
 using System;
 using System.Linq;
-using DSharpPlus;
-using System.Reflection;
+using DSharpPlus.Entities;
 
-class Program
+namespace tmpTest
 {
-    static void Main()
+    class Program
     {
-        var asm = typeof(DiscordClient).Assembly;
-        var t2 = asm.GetTypes().FirstOrDefault(t => t.Name.Contains("EventHandlingBuilder"));
-        if (t2 != null)
+        static void Main()
         {
-            foreach (var m in t2.GetMethods().Where(m => m.Name.Contains("AddEventHandlers"))) 
-                Console.WriteLine("Method: " + m.Name);
+            var t = typeof(DiscordMessage);
+            var ms = t.GetMethods().Where(x => x.Name == "ModifyAsync");
+            Console.WriteLine("ModifyAsync Overloads:");
+            foreach (var m in ms)
+            {
+                Console.WriteLine($"- {m.Name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name))})");
+            }
         }
     }
 }

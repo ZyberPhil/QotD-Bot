@@ -18,6 +18,9 @@ public sealed class AppDbContext : DbContext
     // Logging
     public DbSet<LogRoutingConfig> LogRoutingConfigs => Set<LogRoutingConfig>();
 
+    // Teams
+    public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
