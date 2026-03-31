@@ -1,6 +1,4 @@
-using DSharpPlus;
 using DSharpPlus.Commands;
-using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Entities;
 using Microsoft.EntityFrameworkCore;
 using QotD.Bot.Data;
@@ -10,19 +8,17 @@ using DescriptionAttribute = System.ComponentModel.DescriptionAttribute;
 
 namespace QotD.Bot.Features.Birthdays.Commands;
 
+/// <summary>
+/// Subcommand group: /birthday set, /birthday remove
+/// </summary>
+[DSharpPlus.Commands.Command("birthday")]
+[Description("Manage your birthday reminder")]
 public sealed class BirthdayCommands(AppDbContext db)
 {
-    [DSharpPlus.Commands.Command("birthday")]
-    [Description("Manage your birthday reminder")]
-    public async Task BirthdayAsync(CommandContext ctx)
-    {
-        // Subcommand placeholder if needed, but we'll use top-level or child commands
-    }
-
     [DSharpPlus.Commands.Command("set")]
     [Description("Set your birthday (Day and Month)")]
-    public async Task SetBirthdayAsync(CommandContext ctx, 
-        [Description("Day (1-31)")] int day, 
+    public async Task SetBirthdayAsync(CommandContext ctx,
+        [Description("Day (1-31)")] int day,
         [Description("Month (1-12)")] int month)
     {
         if (day < 1 || day > 31 || month < 1 || month > 12)
@@ -31,7 +27,6 @@ public sealed class BirthdayCommands(AppDbContext db)
             return;
         }
 
-        // Basic check for month lengths
         if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
         {
             await ctx.RespondAsync("❌ This month only has 30 days.");
@@ -78,30 +73,5 @@ public sealed class BirthdayCommands(AppDbContext db)
         await db.SaveChangesAsync();
 
         await ctx.RespondAsync("✅ Your birthday reminder has been removed.");
-    }
-
-    [DSharpPlus.Commands.Command("birthdaysetup")]
-    [Description("Configure the birthday reminder system")]
-    [RequirePermissions(DiscordPermission.ManageGuild)]
-    public async Task SetupAsync(CommandContext ctx, 
-        [Description("Channel for birthday announcements")] DiscordChannel channel, 
-        [Description("Role to give on birthdays")] DiscordRole role)
-    {
-        var guildId = ctx.Guild!.Id;
-
-        var config = await db.BirthdayConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-        if (config == null)
-        {
-            config = new BirthdayConfig { GuildId = guildId };
-            db.BirthdayConfigs.Add(config);
-        }
-
-        config.AnnouncementChannelId = channel.Id;
-        config.BirthdayRoleId = role.Id;
-        await db.SaveChangesAsync();
-
-        await ctx.RespondAsync($"✅ Birthday reminder configured!\n" +
-                               $"- Announcements: {channel.Mention}\n" +
-                               $"- Role: {role.Mention}");
     }
 }

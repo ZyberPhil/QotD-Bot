@@ -23,5 +23,6 @@ public sealed class BirthdaysModule : IBotModule
     public void ConfigureCommands(CommandsExtension commands)
     {
         commands.AddCommands<BirthdayCommands>();
+        commands.AddCommands<BirthdaySetupCommands>();
     }
 }
