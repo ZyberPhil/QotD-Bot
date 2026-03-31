@@ -41,19 +41,33 @@ public sealed class TempVoiceEventHandler :
         // 1. Handle user leaving a temp channel (cleanup)
         if (beforeChannelId != 0 && _tempChannels.ContainsKey(beforeChannelId))
         {
+            _logger.LogDebug("User {UserId} left potentially temp channel {ChannelId}", userId, beforeChannelId);
+            
+            // Give the cache a moment to update user counts
+            await Task.Delay(500);
+
             try
             {
                 var oldChannel = await client.GetChannelAsync(beforeChannelId);
-                if (oldChannel.Users.Count == 0)
+                var userCount = oldChannel.Users.Count;
+                
+                _logger.LogDebug("Temp channel {ChannelId} currently has {Count} users", beforeChannelId, userCount);
+
+                if (userCount == 0)
                 {
                     _tempChannels.TryRemove(beforeChannelId, out _);
                     await oldChannel.DeleteAsync("Temp voice channel empty");
                     _logger.LogInformation("Deleted empty temp channel {ChannelId}", beforeChannelId);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                _tempChannels.TryRemove(beforeChannelId, out _);
+                _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId}", beforeChannelId);
+                // If it fails (e.g. 404), still try to remove from dictionary if we suspect it's gone
+                if (ex.Message.Contains("404"))
+                {
+                   _tempChannels.TryRemove(beforeChannelId, out _);
+                }
             }
         }
 
