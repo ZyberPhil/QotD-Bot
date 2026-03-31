@@ -15,6 +15,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<CountingChannelConfig> CountingChannels => Set<CountingChannelConfig>();
     public DbSet<WordChainConfig> WordChainConfigs => Set<WordChainConfig>();
 
+    // Logging
+    public DbSet<LogRoutingConfig> LogRoutingConfigs => Set<LogRoutingConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

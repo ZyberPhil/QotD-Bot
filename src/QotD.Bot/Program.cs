@@ -29,7 +29,8 @@ try
         new GeneralModule(),
         new QotDModule(),
         new TempVoiceModule(),
-        new QotD.Bot.Features.MiniGames.MiniGamesModule()
+        new QotD.Bot.Features.MiniGames.MiniGamesModule(),
+        new QotD.Bot.Features.Logging.LoggingModule()
     ];
 
     // ── Configuration ──────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ try
                     module.ConfigureDiscordServices(services, s);
                 }
             })
-            .ConfigureEventHandlers(b => b.AddEventHandlers([typeof(MiniGamesEventHandler)]))
+            .ConfigureEventHandlers(b => b.AddEventHandlers([typeof(MiniGamesEventHandler), typeof(QotD.Bot.Features.Logging.Services.LogSetupEventHandler), typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler)]))
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
             {
