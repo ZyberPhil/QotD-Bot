@@ -47,14 +47,18 @@ public sealed class TeamListService
             var sb = new StringBuilder();
             
             // Build default or custom template format
-            foreach (var roleId in config.TrackedRoles)
+            var trackedRoles = config.TrackedRoles
+                .Select(id => guild.Roles.GetValueOrDefault(id))
+                .Where(r => r != null)
+                .OrderByDescending(r => r.Position)
+                .ToList();
+
+            foreach (var role in trackedRoles)
             {
-                if (guild.Roles.TryGetValue(roleId, out var role))
-                {
-                    var membersWithRole = allMembers.Where(m => m.Roles.Any(r => r.Id == role.Id)).ToList();
-                    string membersList = membersWithRole.Count > 0 
-                        ? string.Join(", ", membersWithRole.Select(m => $"<@{m.Id}>"))
-                        : "Nobody";
+                var membersWithRole = allMembers.Where(m => m.Roles.Any(r => r.Id == role.Id)).ToList();
+                string membersList = membersWithRole.Count > 0 
+                    ? string.Join(", ", membersWithRole.Select(m => $"<@{m.Id}>"))
+                    : "Nobody";
 
                     if (!string.IsNullOrWhiteSpace(config.CustomTemplate))
                     {
@@ -71,7 +75,6 @@ public sealed class TeamListService
                         sb.AppendLine($"👥 {membersList}\n");
                     }
                 }
-            }
 
             embed.WithDescription(sb.ToString());
 
