@@ -14,6 +14,8 @@ public sealed class TeamListConfig
     public ulong[] TrackedRoles { get; set; } = Array.Empty<ulong>();
 
     public string? CustomTemplate { get; set; }
+    public string? CustomTitle { get; set; }
+    public string? CustomFooter { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

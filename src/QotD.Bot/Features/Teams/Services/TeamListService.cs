@@ -40,9 +40,14 @@ public sealed class TeamListService
             }
 
             var embed = new DiscordEmbedBuilder()
-                .WithTitle("📋 Team List")
+                .WithTitle(config.CustomTitle ?? "📋 Team List")
                 .WithColor(DiscordColor.Blurple)
                 .WithTimestamp(DateTimeOffset.UtcNow);
+
+            if (!string.IsNullOrWhiteSpace(config.CustomFooter))
+            {
+                embed.WithFooter(config.CustomFooter);
+            }
 
             var sb = new StringBuilder();
             

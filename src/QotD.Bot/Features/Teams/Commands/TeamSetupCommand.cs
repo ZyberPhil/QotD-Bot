@@ -34,10 +34,13 @@ public sealed class TeamSetupCommand
             : "❌ None";
         sb.AppendLine($"**Tracked Roles:** {rolesStr}");
         
+        sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default (📋 Team List)"}");
+        
         var templateDisplay = string.IsNullOrWhiteSpace(config?.CustomTemplate) 
             ? "Default Template" 
             : "Custom Template Active";
         sb.AppendLine($"**Template:** {templateDisplay}");
+        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
         
         embed.AddField("Current Configuration", sb.ToString());
 

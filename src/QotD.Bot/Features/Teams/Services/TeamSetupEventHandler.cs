@@ -12,7 +12,8 @@ using System.Text;
 namespace QotD.Bot.Features.Teams.Services;
 
 public sealed class TeamSetupEventHandler : 
-    IEventHandler<ComponentInteractionCreatedEventArgs>
+    IEventHandler<ComponentInteractionCreatedEventArgs>,
+    IEventHandler<ModalSubmittedEventArgs>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly TeamListService _teamListService;
@@ -39,35 +40,18 @@ public sealed class TeamSetupEventHandler :
 
         if (e.Interaction.Data.CustomId == "teamsetup_template")
         {
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, 
-                new DiscordInteractionResponseBuilder()
-                    .WithContent("📝 **Please send the new template in this channel.**\n" +
-                                 "Placeholders: `{rank}`, `{text}`, `{count}`\n" +
-                                 "Type `cancel` to abort.")
-                    .AsEphemeral());
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
             
-            var interactivity = client.ServiceProvider.GetRequiredService<InteractivityExtension>();
-            var response = await interactivity.WaitForMessageAsync(m => m.Author.Id == e.Interaction.User.Id && m.ChannelId == e.Interaction.ChannelId, TimeSpan.FromMinutes(2));
-            
-            if (response.TimedOut || response.Result == null || response.Result.Content.ToLower() == "cancel")
-            {
-                await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("❌ Template update cancelled or timed out."));
-                return;
-            }
+            var modal = new DiscordInteractionResponseBuilder()
+                .WithTitle("Edit Team List Template")
+                .WithCustomId("teamsetup_modal")
+                .AddActionRowComponent(new TextInputComponent("Custom Title", "title", "📋 Team List", config?.CustomTitle, false))
+                .AddActionRowComponent(new TextInputComponent("Body Template", "template", "{rank} ({count})\n{text}", config?.CustomTemplate, true, TextInputStyle.Paragraph))
+                .AddActionRowComponent(new TextInputComponent("Custom Footer", "footer", "Optional footer text", config?.CustomFooter, false));
 
-            var newTemplate = response.Result.Content;
-            
-            using var updScope = _serviceProvider.CreateScope();
-            var updDb = updScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var updConfig = await updDb.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-            if (updConfig == null) { updConfig = new TeamListConfig { GuildId = guildId }; updDb.TeamListConfigs.Add(updConfig); }
-            
-            updConfig.CustomTemplate = newTemplate;
-            await updDb.SaveChangesAsync();
-
-            await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("✅ Template updated!"));
-            await _teamListService.RefreshTeamListAsync(client, guildId);
-            await RefreshSetupPanelAsync(e, updConfig);
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
             return;
         }
 
@@ -107,7 +91,39 @@ public sealed class TeamSetupEventHandler :
         await RefreshSetupPanelAsync(e, config);
     }
 
+    public async Task HandleEventAsync(DiscordClient client, ModalSubmittedEventArgs e)
+    {
+        if (e.Interaction.Data.CustomId != "teamsetup_modal") return;
 
+        var guildId = e.Interaction.GuildId!.Value;
+        
+        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
+
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+        if (config == null)
+        {
+            config = new TeamListConfig { GuildId = guildId };
+            db.TeamListConfigs.Add(config);
+        }
+
+        config.CustomTitle = e.Values["title"];
+        config.CustomTemplate = e.Values["template"];
+        config.CustomFooter = e.Values["footer"];
+
+        await db.SaveChangesAsync();
+
+        await _teamListService.RefreshTeamListAsync(client, guildId);
+        
+        // We need to edit the ORIGINAL message that opened the modal. 
+        // In modal submit, e.Interaction is the modal interaction.
+        // We might not be able to easily get the original message here if it was a component interaction session.
+        // However, we can use EditOriginalResponseAsync if we have the right context.
+        // Usually, the setup panel is edited.
+        await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("✅ Configuration updated!"));
+    }
 
     private async Task RefreshSetupPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig config)
     {
@@ -124,10 +140,13 @@ public sealed class TeamSetupEventHandler :
             : "❌ None";
         sb.AppendLine($"**Tracked Roles:** {rolesStr}");
         
+        sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default (📋 Team List)"}");
+        
         var templateDisplay = string.IsNullOrWhiteSpace(config?.CustomTemplate) 
             ? "Default Template" 
             : "Custom Template Active";
         sb.AppendLine($"**Template:** {templateDisplay}");
+        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
         
         embed.AddField("Current Configuration", sb.ToString());
 
