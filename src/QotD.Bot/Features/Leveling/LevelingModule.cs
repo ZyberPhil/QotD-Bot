@@ -17,7 +17,10 @@ public sealed class LevelingModule : IBotModule
     {
         services.AddDbContext<LevelDatabaseContext>(options =>
         {
-            options.UseSqlite(configuration.GetConnectionString("LevelingSqlite") ?? "Data Source=Data/leveling.db");
+            options.UseNpgsql(
+                configuration.GetConnectionString("Postgres")
+                    ?? throw new InvalidOperationException("ConnectionStrings:Postgres is not configured."),
+                npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
         });
 
         services.AddSingleton<LevelService>();

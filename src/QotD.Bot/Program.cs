@@ -155,14 +155,6 @@ try
     app.UseCors();
     app.MapControllers();
 
-    // ── Ensure database directories exist ────────────────────────────────────────
-    var dbDir = Path.Combine(AppContext.BaseDirectory, "Data");
-    if (!Directory.Exists(dbDir))
-    {
-        Directory.CreateDirectory(dbDir);
-        Log.Information("Created database directory: {DbDir}", dbDir);
-    }
-
     // ── Apply EF Core Migrations at startup ────────────────────────────────────
     using (var scope = app.Services.CreateScope())
     {
