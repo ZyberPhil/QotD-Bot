@@ -8,6 +8,9 @@ using QotD.Bot.Core;
 using QotD.Bot.Data;
 using QotD.Bot.Features.General;
 using QotD.Bot.Features.General.Models;
+using QotD.Bot.Features.Leveling;
+using QotD.Bot.Features.Leveling.Data;
+using QotD.Bot.Features.Leveling.Services;
 using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Features.MiniGames.Services;
@@ -29,6 +32,7 @@ try
     // ── Module Infrastructure ──────────────────────────────────────────────────
     IBotModule[] modules = [
         new GeneralModule(),
+        new LevelingModule(),
         new QotDModule(),
         new TempVoiceModule(),
         new QotD.Bot.Features.MiniGames.MiniGamesModule(),
@@ -127,7 +131,8 @@ try
                 typeof(QotD.Bot.Features.General.Services.HelpMenuEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamSetupEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamListEventHandler),
-                typeof(QotD.Bot.Features.TempVoice.Services.TempVoiceEventHandler)
+                typeof(QotD.Bot.Features.TempVoice.Services.TempVoiceEventHandler),
+                typeof(LevelingEventHandler)
             ]))
             .UseInteractivity(new InteractivityConfiguration())
             .UseCommands((_, extension) =>
@@ -154,8 +159,10 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var levelDb = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
         Log.Information("Applying database migrations…");
         await db.Database.MigrateAsync();
+        await levelDb.Database.MigrateAsync();
         Log.Information("Database migrations applied.");
 
         // ── Warm up caches and assets ──────────────────────────────────────────────
