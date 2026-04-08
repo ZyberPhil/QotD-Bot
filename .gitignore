@@ -16,7 +16,19 @@
 
 # Logs
 logs/
+*.log
+
+# Local publish/output folders
+out/
 
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Local AI/Copilot instruction files
+.github/instructions/
+
+# Local one-off build artifacts
+src/QotD.Bot/build.log
+QotD-Bot.sln

@@ -46,13 +46,13 @@ public sealed class TeamSetupCommand
 
         var channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
         var roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", minOptions: 1, maxOptions: 10);
-        var btnTemplate = new DiscordButtonComponent(DiscordButtonStyle.Primary, "teamsetup_template", "Edit Template");
+        var btnCustomText = new DiscordButtonComponent(DiscordButtonStyle.Primary, "teamsetup_custom_text", "Customize Text (Header/Footer)");
         var btnRefresh = new DiscordButtonComponent(DiscordButtonStyle.Success, "teamsetup_refresh", "Force Refresh List");
 
         await ctx.EditResponseAsync(new DiscordWebhookBuilder()
             .AddEmbed(embed)
             .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { channelSelect }))
             .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { roleSelect }))
-            .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnTemplate, btnRefresh })));
+            .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnCustomText, btnRefresh })));
     }
 }

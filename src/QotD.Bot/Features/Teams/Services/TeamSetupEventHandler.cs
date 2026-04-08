@@ -12,8 +12,7 @@ using System.Text;
 namespace QotD.Bot.Features.Teams.Services;
 
 public sealed class TeamSetupEventHandler : 
-    IEventHandler<ComponentInteractionCreatedEventArgs>,
-    IEventHandler<ModalSubmittedEventArgs>
+    IEventHandler<ComponentInteractionCreatedEventArgs>
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly TeamListService _teamListService;
@@ -31,145 +30,216 @@ public sealed class TeamSetupEventHandler :
         var member = e.Interaction.User as DiscordMember;
         if (e.Interaction.GuildId == null || member == null || !member.PermissionsIn(e.Channel).HasPermission(DiscordPermission.ManageGuild))
         {
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, 
-                new DiscordInteractionResponseBuilder().WithContent("Manage Guild permission required.").AsEphemeral());
+            DiscordInteractionResponseBuilder resp = new DiscordInteractionResponseBuilder();
+            resp.WithContent("Manage Guild permission required.");
+            resp.AsEphemeral();
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, resp);
             return;
         }
 
         var guildId = e.Interaction.GuildId.Value;
 
-        if (e.Interaction.Data.CustomId == "teamsetup_template")
+        if (e.Interaction.Data.CustomId == "teamsetup_custom_text")
         {
-            using var scope = _serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-            
-            var modal = new DiscordInteractionResponseBuilder()
-                .WithTitle("Edit Team List Template")
-                .WithCustomId("teamsetup_modal")
-                .AddActionRowComponent(new TextInputComponent("Custom Title", "title", "📋 Team List", config?.CustomTitle, false))
-                .AddActionRowComponent(new TextInputComponent("Body Template", "template", "{rank} ({count})\n{text}", config?.CustomTemplate, true, TextInputStyle.Paragraph))
-                .AddActionRowComponent(new TextInputComponent("Custom Footer", "footer", "Optional footer text", config?.CustomFooter, false));
+            await ShowCustomTextPanelAsync(e);
+            return;
+        }
 
-            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.Modal, modal);
+        if (e.Interaction.Data.CustomId.StartsWith("teamsetup_edit_"))
+        {
+            await HandleEditActionAsync(client, e);
+            return;
+        }
+
+        if (e.Interaction.Data.CustomId == "teamsetup_back")
+        {
+            await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+                await RefreshSetupPanelAsync(e, config);
+            }
             return;
         }
 
         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
 
-        using var scope = _serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-        if (config == null)
+        using (var scope = _serviceProvider.CreateScope())
         {
-            config = new TeamListConfig { GuildId = guildId };
-            db.TeamListConfigs.Add(config);
-        }
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        if (e.Interaction.Data.CustomId == "teamsetup_channel")
-        {
-            if (ulong.TryParse(e.Interaction.Data.Values[0], out var channelId))
+            var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+            if (config == null)
             {
-                config.ChannelId = channelId;
-                config.MessageId = null; // reset message ID as it moved channel
+                config = new TeamListConfig { GuildId = guildId };
+                db.TeamListConfigs.Add(config);
+            }
+
+            if (e.Interaction.Data.CustomId == "teamsetup_channel")
+            {
+                if (ulong.TryParse(e.Interaction.Data.Values[0], out var channelId))
+                {
+                    config.ChannelId = channelId;
+                    config.MessageId = null;
+                }
+            }
+            else if (e.Interaction.Data.CustomId == "teamsetup_roles")
+            {
+                var roleIds = e.Interaction.Data.Values.Select(ulong.Parse).ToArray();
+                config.TrackedRoles = roleIds;
+            }
+
+            await db.SaveChangesAsync();
+
+            if (e.Interaction.Data.CustomId == "teamsetup_refresh")
+            {
+                await _teamListService.RefreshTeamListAsync(client, guildId);
+            }
+
+            await RefreshSetupPanelAsync(e, config);
+        }
+    }
+
+    private async Task ShowCustomTextPanelAsync(ComponentInteractionCreatedEventArgs e)
+    {
+        var guildId = e.Interaction.GuildId!.Value;
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+
+            DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
+            embed.WithTitle("📋 Team List Customization");
+            embed.WithColor(DiscordColor.Blurple);
+            embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"**Header (Title):** {config?.CustomTitle ?? "Default (📋 Team List)"}");
+            sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
+            sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
+            embed.AddField("Current Text Settings", sb.ToString());
+
+            DiscordButtonComponent btnTitle = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_title", "Edit Title");
+            DiscordButtonComponent btnBody = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_body", "Edit Body (Template)");
+            DiscordButtonComponent btnFooter = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_footer", "Edit Footer");
+            DiscordButtonComponent btnBack = new DiscordButtonComponent(DiscordButtonStyle.Danger, "teamsetup_back", "Back");
+
+            if (e.Interaction.ResponseState == DiscordInteractionResponseState.Unacknowledged)
+            {
+                DiscordInteractionResponseBuilder resp = new DiscordInteractionResponseBuilder();
+                resp.AddEmbed(embed.Build());
+                resp.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnTitle, btnBody, btnFooter }));
+                resp.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnBack }));
+                await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, resp);
+            }
+            else
+            {
+                DiscordWebhookBuilder webhook = new DiscordWebhookBuilder();
+                webhook.AddEmbed(embed.Build());
+                webhook.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnTitle, btnBody, btnFooter }));
+                webhook.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnBack }));
+                await e.Interaction.EditOriginalResponseAsync(webhook);
             }
         }
-        else if (e.Interaction.Data.CustomId == "teamsetup_roles")
-        {
-            var roleIds = e.Interaction.Data.Values.Select(ulong.Parse).ToArray();
-            config.TrackedRoles = roleIds;
-        }
-
-        await db.SaveChangesAsync();
-
-        if (e.Interaction.Data.CustomId == "teamsetup_refresh")
-        {
-            await _teamListService.RefreshTeamListAsync(client, guildId);
-        }
-
-        await RefreshSetupPanelAsync(e, config);
     }
 
-    public async Task HandleEventAsync(DiscordClient client, ModalSubmittedEventArgs e)
+    private async Task HandleEditActionAsync(DiscordClient client, ComponentInteractionCreatedEventArgs e)
     {
-        if (e.Interaction.Data.CustomId != "teamsetup_modal") return;
-
+        var field = e.Interaction.Data.CustomId.Replace("teamsetup_edit_", "");
         var guildId = e.Interaction.GuildId!.Value;
-        
-        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
 
-        using var scope = _serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        DiscordInteractionResponseBuilder prompt = new DiscordInteractionResponseBuilder();
+        prompt.WithContent($"Please type the new **{field}** now. (Type `cancel` to stop)");
+        prompt.AsEphemeral();
+        await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, prompt);
 
-        var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-        if (config == null)
+        var interactivity = client.ServiceProvider.GetRequiredService<InteractivityExtension>();
+        var msg = await interactivity.WaitForMessageAsync(x => x.Author.Id == e.User.Id && x.ChannelId == e.Channel.Id, TimeSpan.FromMinutes(2));
+
+        if (msg.TimedOut || msg.Result == null || string.Equals(msg.Result.Content, "cancel", StringComparison.OrdinalIgnoreCase))
         {
-            config = new TeamListConfig { GuildId = guildId };
-            db.TeamListConfigs.Add(config);
+            return;
         }
 
-        config.CustomTitle = e.Values["title"];
-        config.CustomTemplate = e.Values["template"];
-        config.CustomFooter = e.Values["footer"];
+        var newValue = msg.Result.Content;
+        try { await msg.Result.DeleteAsync(); } catch { }
 
-        await db.SaveChangesAsync();
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
+            if (config == null)
+            {
+                config = new TeamListConfig { GuildId = guildId };
+                db.TeamListConfigs.Add(config);
+            }
 
-        await _teamListService.RefreshTeamListAsync(client, guildId);
-        
-        // We need to edit the ORIGINAL message that opened the modal. 
-        // In modal submit, e.Interaction is the modal interaction.
-        // We might not be able to easily get the original message here if it was a component interaction session.
-        // However, we can use EditOriginalResponseAsync if we have the right context.
-        // Usually, the setup panel is edited.
-        await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder().WithContent("✅ Configuration updated!"));
+            if (field == "title") config.CustomTitle = newValue;
+            else if (field == "body") config.CustomTemplate = newValue;
+            else if (field == "footer") config.CustomFooter = newValue;
+
+            await db.SaveChangesAsync();
+            await _teamListService.RefreshTeamListAsync(client, guildId);
+            await UpdateCustomTextPanelAsync(e, config);
+        }
     }
 
-    private async Task RefreshSetupPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig config)
+    private async Task UpdateCustomTextPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig config)
     {
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("📋 Dynamic Team List Setup")
-            .WithColor(DiscordColor.Blurple)
-            .WithDescription("Configure the dynamic team list message. The bot will automatically update the message in the selected channel whenever members gain or lose the tracked roles.");
+        DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
+        embed.WithTitle("📋 Team List Customization");
+        embed.WithColor(DiscordColor.Blurple);
+        embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
 
-        var sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine($"**Header (Title):** {config?.CustomTitle ?? "Default (📋 Team List)"}");
+        sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
+        sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
+        embed.AddField("Current Text Settings", sb.ToString());
+
+        DiscordButtonComponent btnTitle = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_title", "Edit Title");
+        DiscordButtonComponent btnBody = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_body", "Edit Body (Template)");
+        DiscordButtonComponent btnFooter = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_footer", "Edit Footer");
+        DiscordButtonComponent btnBack = new DiscordButtonComponent(DiscordButtonStyle.Danger, "teamsetup_back", "Back");
+
+        DiscordMessageBuilder msg = new DiscordMessageBuilder();
+        msg.AddEmbed(embed.Build());
+        msg.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnTitle, btnBody, btnFooter }));
+        msg.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnBack }));
+        await e.Message.ModifyAsync(msg);
+    }
+
+    private async Task RefreshSetupPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig? config)
+    {
+        DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
+        embed.WithTitle("📋 Dynamic Team List Setup");
+        embed.WithColor(DiscordColor.Blurple);
+        embed.WithDescription("Configure the dynamic team list message.");
+
+        StringBuilder sb = new StringBuilder();
         sb.AppendLine($"**Target Channel:** {(config?.ChannelId > 0 ? $"<#{config.ChannelId}>" : "❌ Not Set")}");
         
         var rolesStr = config?.TrackedRoles?.Length > 0 
             ? string.Join(", ", config.TrackedRoles.Select(r => $"<@&{r}>")) 
             : "❌ None";
         sb.AppendLine($"**Tracked Roles:** {rolesStr}");
-        
-        sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default (📋 Team List)"}");
-        
-        var templateDisplay = string.IsNullOrWhiteSpace(config?.CustomTemplate) 
-            ? "Default Template" 
-            : "Custom Template Active";
-        sb.AppendLine($"**Template:** {templateDisplay}");
+        sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default"}");
+        sb.AppendLine($"**Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
         sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
-        
         embed.AddField("Current Configuration", sb.ToString());
 
-        var channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
-        var roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", false, 1, 10);
-        if (config?.TrackedRoles != null && config.TrackedRoles.Length > 0)
-        {
-            var defaults = config.TrackedRoles
-                .Select(id => new DiscordSelectDefaultValue(id, DiscordSelectDefaultValueType.Role));
-            
-            if (roleSelect.DefaultValues is List<DiscordSelectDefaultValue> list)
-            {
-                list.AddRange(defaults);
-            }
-        }
+        DiscordChannelSelectComponent channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
+        DiscordRoleSelectComponent roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", false, 1, 10);
+        DiscordButtonComponent btnCustomText = new DiscordButtonComponent(DiscordButtonStyle.Primary, "teamsetup_custom_text", "Customize Text");
+        DiscordButtonComponent btnRefresh = new DiscordButtonComponent(DiscordButtonStyle.Success, "teamsetup_refresh", "Force Refresh");
 
-        var btnTemplate = new DiscordButtonComponent(DiscordButtonStyle.Primary, "teamsetup_template", "Edit Template");
-        var btnRefresh = new DiscordButtonComponent(DiscordButtonStyle.Success, "teamsetup_refresh", "Force Refresh List");
+        DiscordWebhookBuilder webhook = new DiscordWebhookBuilder();
+        webhook.AddEmbed(embed.Build());
+        webhook.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { channelSelect }));
+        webhook.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { roleSelect }));
+        webhook.AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnCustomText, btnRefresh }));
 
-        await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
-            .AddEmbed(embed)
-            .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { channelSelect }))
-            .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { roleSelect }))
-            .AddActionRowComponent(new DiscordActionRowComponent(new DiscordComponent[] { btnTemplate, btnRefresh })));
+        await e.Interaction.EditOriginalResponseAsync(webhook);
     }
 }
