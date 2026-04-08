@@ -16,19 +16,23 @@ public sealed class DiscordBotService(
     ILogger<DiscordBotService> logger) : IHostedService
 {
     private readonly DiscordSettings _settings = settings.Value;
+    private DiscordClient? _client;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Connecting Discord bot to gateway…");
-        var client = serviceProvider.GetRequiredService<DiscordClient>();
-        await client.ConnectAsync();
-        logger.LogInformation("Discord bot connected.");
+        _client = serviceProvider.GetRequiredService<DiscordClient>();
+        
+        await _client.ConnectAsync();
+        logger.LogInformation("Discord bot connected. Slash commands are being registered with Discord…");
     }
     
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Disconnecting Discord bot…");
-        var client = serviceProvider.GetRequiredService<DiscordClient>();
-        await client.DisconnectAsync();
+        if (_client is not null)
+        {
+            await _client.DisconnectAsync();
+        }
     }
 }
