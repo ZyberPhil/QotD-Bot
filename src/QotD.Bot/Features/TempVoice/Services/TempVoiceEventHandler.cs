@@ -19,7 +19,8 @@ public sealed class TempVoiceEventHandler :
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
 
     // channelId -> ownerId
-    private readonly ConcurrentDictionary<ulong, ulong> _tempChannels = new();
+    // Static so tracking survives multiple handler instances in the same process.
+    private static readonly ConcurrentDictionary<ulong, ulong> _tempChannels = new();
 
     public TempVoiceEventHandler(IServiceProvider serviceProvider, ILogger<TempVoiceEventHandler> logger)
     {
