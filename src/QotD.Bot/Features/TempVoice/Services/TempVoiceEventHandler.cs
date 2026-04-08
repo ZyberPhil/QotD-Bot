@@ -65,14 +65,25 @@ public sealed class TempVoiceEventHandler :
                     return;
                 }
 
-                var userCount = oldChannel.Users.Count;
-                _logger.LogInformation("Temp channel {ChannelId} currently has {Count} users.", beforeChannelId, userCount);
+                var usersInChannel = oldChannel.Users;
+                var userCount = usersInChannel.Count;
+                var onlyLeaverRemainsInCache =
+                    userCount == 1 &&
+                    usersInChannel.Any(u => u.Id == userId) &&
+                    afterChannelId != beforeChannelId;
 
-                if (userCount == 0)
+                _logger.LogInformation(
+                    "Temp channel {ChannelId} currently has {Count} users. onlyLeaverRemainsInCache={OnlyLeaver}",
+                    beforeChannelId,
+                    userCount,
+                    onlyLeaverRemainsInCache);
+
+                if (userCount == 0 || onlyLeaverRemainsInCache)
                 {
+                    await oldChannel.DeleteAsync("Temp voice channel empty");
+
                     if (_tempChannels.TryRemove(beforeChannelId, out _))
                     {
-                        await oldChannel.DeleteAsync("Temp voice channel empty");
                         _logger.LogInformation("Successfully deleted empty temp channel {ChannelId}", beforeChannelId);
                     }
                 }
