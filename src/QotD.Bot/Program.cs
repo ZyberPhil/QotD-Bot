@@ -11,8 +11,10 @@ using QotD.Bot.Features.General.Models;
 using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Features.MiniGames.Services;
+using QotD.Bot.Features.Logging.Services;
 using QotD.Bot.Services;
 using Serilog;
+using Serilog.Events;
 
 // ── Bootstrap Serilog early so any startup errors are logged ──────────────────
 Log.Logger = new LoggerConfiguration()
@@ -61,6 +63,8 @@ try
     // ── API Controllers ────────────────────────────────────────────────────────
     builder.Services.AddControllers();
     builder.Services.AddMemoryCache();
+    builder.Services.AddSingleton<DiscordBotLogRelay>();
+    builder.Services.AddHostedService<DiscordBotLogPump>();
 
     // ── Serilog (full configuration from appsettings.json) ─────────────────────
     builder.Services.AddSerilog((services, loggerConfig) =>
@@ -69,6 +73,12 @@ try
             .ReadFrom.Configuration(builder.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext();
+
+        var relay = services.GetService<DiscordBotLogRelay>();
+        if (relay is not null)
+        {
+            loggerConfig.WriteTo.Sink(new DiscordBotSerilogSink(relay), restrictedToMinimumLevel: LogEventLevel.Information);
+        }
     });
 
     // ── Database ───────────────────────────────────────────────────────────────
