@@ -48,12 +48,7 @@ public sealed class TempVoiceEventHandler :
         if (userId == 0 || guildId == 0) return;
 
         // 1. Handle user leaving a temp channel (cleanup)
-        var shouldAttemptCleanup = false;
-        if (beforeChannelId != 0)
-        {
-            shouldAttemptCleanup = _tempChannels.ContainsKey(beforeChannelId)
-                                 || await IsManagedTempChannelAsync(client, guildId, beforeChannelId);
-        }
+        var shouldAttemptCleanup = beforeChannelId != 0 && _tempChannels.ContainsKey(beforeChannelId);
 
         if (shouldAttemptCleanup)
         {
@@ -78,7 +73,7 @@ public sealed class TempVoiceEventHandler :
         else if (beforeChannelId != 0 && afterChannelId != beforeChannelId)
         {
             _logger.LogDebug(
-                "Skip cleanup for channel {ChannelId}: not tracked and not recognized as managed temp voice. [InstanceId={InstanceId}]",
+                "Skip cleanup for channel {ChannelId}: not tracked by temp voice handler. [InstanceId={InstanceId}]",
                 beforeChannelId,
                 _instanceId);
         }
@@ -280,44 +275,6 @@ public sealed class TempVoiceEventHandler :
                 return true;
             }
 
-            return false;
-        }
-    }
-
-    private async Task<bool> IsManagedTempChannelAsync(DiscordClient client, ulong guildId, ulong channelId)
-    {
-        try
-        {
-            using var scope = _serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            var config = await db.TempVoiceConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
-            if (config == null || channelId == config.TriggerChannelId)
-                return false;
-
-            var guild = await client.GetGuildAsync(guildId);
-            var channel = guild.Channels.GetValueOrDefault(channelId);
-
-            if (channel == null || channel.Type != DiscordChannelType.Voice)
-                return false;
-
-            var channelParentId = channel.Parent?.Id;
-
-            if (config.CategoryId.HasValue)
-                return channelParentId == config.CategoryId.Value;
-
-            var triggerChannel = guild.Channels.GetValueOrDefault(config.TriggerChannelId);
-            if (triggerChannel == null)
-                return false;
-
-            var triggerParentId = triggerChannel.Parent?.Id;
-            var sameParent = channelParentId != null && channelParentId == triggerParentId;
-
-            return sameParent && channel.Name.StartsWith("🔊 ", StringComparison.Ordinal);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to resolve whether channel {ChannelId} is managed temp voice. [InstanceId={InstanceId}]", channelId, _instanceId);
             return false;
         }
     }
