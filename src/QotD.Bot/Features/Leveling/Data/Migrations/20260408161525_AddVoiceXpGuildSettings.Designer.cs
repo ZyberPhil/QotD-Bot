@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QotD.Bot.Features.Leveling.Data;
@@ -11,9 +12,11 @@ using QotD.Bot.Features.Leveling.Data;
 namespace QotD.Bot.Features.Leveling.Data.Migrations
 {
     [DbContext(typeof(LevelDatabaseContext))]
-    partial class LevelDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260408161525_AddVoiceXpGuildSettings")]
+    partial class AddVoiceXpGuildSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

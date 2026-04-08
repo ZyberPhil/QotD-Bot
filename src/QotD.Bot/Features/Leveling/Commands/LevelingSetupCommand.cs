@@ -63,4 +63,35 @@ public class LevelingSetupCommand
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }
+
+    [Command("voiceconfig")]
+    [Description("Konfiguriert Regeln für Voice-XP")]
+    public async ValueTask ConfigureVoiceXpAsync(
+        CommandContext ctx,
+        [Description("Minimale Anzahl aktiver User im Voice-Channel (1-25)")] long minActiveUsers,
+        [Description("Self-muted/self-deafened User dürfen XP bekommen")] bool allowSelfMutedOrDeafened = false)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        var normalizedMinUsers = Math.Clamp((int)minActiveUsers, 1, 25);
+
+        await _levelService.SetVoiceXpSettingsAsync(
+            ctx.Guild.Id,
+            normalizedMinUsers,
+            allowSelfMutedOrDeafened);
+
+        var embed = new DiscordEmbedBuilder()
+            .WithTitle("✅ Voice-XP Regeln aktualisiert")
+            .WithColor(DiscordColor.Green)
+            .WithDescription(
+                $"Minimale aktive User im Voice: **{normalizedMinUsers}**\n" +
+                $"Self-muted/deafened erhalten XP: **{(allowSelfMutedOrDeafened ? "Ja" : "Nein")}**")
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
 }

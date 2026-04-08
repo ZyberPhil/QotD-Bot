@@ -37,6 +37,8 @@ public sealed class LevelDatabaseContext : DbContext
             entity.Property(x => x.GuildId).IsRequired();
             entity.Property(x => x.LevelUpChannelId).HasDefaultValue(0);
             entity.Property(x => x.IsEnabled).HasDefaultValue(true);
+            entity.Property(x => x.VoiceMinActiveUsers).HasDefaultValue(2);
+            entity.Property(x => x.VoiceAllowSelfMutedOrDeafened).HasDefaultValue(false);
 
             entity.HasIndex(x => x.GuildId).IsUnique();
         });

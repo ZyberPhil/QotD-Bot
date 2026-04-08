@@ -19,4 +19,6 @@ public sealed class LevelUserStats
     public int MessageCount { get; set; }
 
     public DateTimeOffset? LastMessageXpAtUtc { get; set; }
+
+    public DateTimeOffset? LastVoiceXpAtUtc { get; set; }
 }

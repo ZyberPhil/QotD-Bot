@@ -25,6 +25,7 @@ public sealed class LevelingModule : IBotModule
 
         services.AddSingleton<LevelService>();
         services.AddSingleton<LevelingEventHandler>();
+        services.AddHostedService<VoiceXpBackgroundService>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)

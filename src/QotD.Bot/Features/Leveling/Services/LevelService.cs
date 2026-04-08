@@ -7,9 +7,13 @@ namespace QotD.Bot.Features.Leveling.Services;
 
 public sealed class LevelService
 {
+    private const int DefaultVoiceMinActiveUsers = 2;
+    private const bool DefaultVoiceAllowSelfMutedOrDeafened = false;
     private const int MinMessageXp = 15;
     private const int MaxMessageXp = 25;
     private static readonly TimeSpan MessageXpCooldown = TimeSpan.FromSeconds(60);
+    private const int VoiceXpPerTick = 10;
+    private static readonly TimeSpan VoiceXpCooldown = TimeSpan.FromMinutes(5);
 
     private readonly IServiceScopeFactory _scopeFactory;
 
@@ -63,6 +67,52 @@ public sealed class LevelService
         await db.SaveChangesAsync();
 
         return new LevelGrantResult(entry.Level > previousLevel, entry.Level, entry.XP, gainedXp);
+    }
+
+    public async Task<LevelGrantResult> GrantVoiceXpAsync(ulong guildId, ulong userId, DateTimeOffset nowUtc)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var userIdValue = checked((long)userId);
+
+        var entry = await db.LevelUserStats
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue && x.UserId == userIdValue);
+
+        if (entry is null)
+        {
+            entry = new LevelUserStats
+            {
+                GuildId = guildIdValue,
+                UserId = userIdValue,
+                XP = 0,
+                Level = 0,
+                MessageCount = 0,
+                LastMessageXpAtUtc = null,
+                LastVoiceXpAtUtc = null
+            };
+
+            db.LevelUserStats.Add(entry);
+        }
+
+        if (entry.LastVoiceXpAtUtc is not null && nowUtc - entry.LastVoiceXpAtUtc.Value < VoiceXpCooldown)
+        {
+            return new LevelGrantResult(false, entry.Level, entry.XP, 0);
+        }
+
+        entry.XP += VoiceXpPerTick;
+        entry.LastVoiceXpAtUtc = nowUtc;
+
+        var previousLevel = entry.Level;
+        while (entry.XP >= GetTotalXpForLevel(entry.Level + 1))
+        {
+            entry.Level += 1;
+        }
+
+        await db.SaveChangesAsync();
+
+        return new LevelGrantResult(entry.Level > previousLevel, entry.Level, entry.XP, VoiceXpPerTick);
     }
 
     public async Task<LevelUserSnapshot> GetUserSnapshotAsync(ulong guildId, ulong userId)
@@ -175,6 +225,58 @@ public sealed class LevelService
         }
     }
 
+    public async Task<VoiceXpSettings> GetVoiceXpSettingsAsync(ulong guildId)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var config = await db.LevelingConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue);
+
+        if (config is null)
+        {
+            return new VoiceXpSettings(DefaultVoiceMinActiveUsers, DefaultVoiceAllowSelfMutedOrDeafened);
+        }
+
+        return new VoiceXpSettings(
+            Math.Max(1, config.VoiceMinActiveUsers),
+            config.VoiceAllowSelfMutedOrDeafened);
+    }
+
+    public async Task SetVoiceXpSettingsAsync(ulong guildId, int minActiveUsers, bool allowSelfMutedOrDeafened)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var normalizedMinActiveUsers = Math.Clamp(minActiveUsers, 1, 25);
+
+        var config = await db.LevelingConfigs
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue);
+
+        if (config is null)
+        {
+            config = new LevelingConfig
+            {
+                GuildId = guildIdValue,
+                LevelUpChannelId = 0,
+                IsEnabled = false,
+                VoiceMinActiveUsers = normalizedMinActiveUsers,
+                VoiceAllowSelfMutedOrDeafened = allowSelfMutedOrDeafened
+            };
+            db.LevelingConfigs.Add(config);
+        }
+        else
+        {
+            config.VoiceMinActiveUsers = normalizedMinActiveUsers;
+            config.VoiceAllowSelfMutedOrDeafened = allowSelfMutedOrDeafened;
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     public static int GetXpRequiredForLevel(int level)
     {
         if (level < 0)
@@ -243,3 +345,5 @@ public sealed record LevelUserSnapshot(
     int Rank);
 
 public sealed record LevelLeaderboardEntry(LevelUserSnapshot Snapshot, int Rank);
+
+public sealed record VoiceXpSettings(int MinActiveUsers, bool AllowSelfMutedOrDeafened);
