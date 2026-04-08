@@ -53,45 +53,15 @@ public sealed class TempVoiceEventHandler :
             // Give the cache a bit more time to update
             await Task.Delay(1000);
 
-            try
+            var cleanedUp = await TryCleanupTempChannelAsync(client, guildId, beforeChannelId, userId, afterChannelId);
+            if (!cleanedUp && _tempChannels.ContainsKey(beforeChannelId))
             {
-                var guild = await client.GetGuildAsync(guildId);
-                var oldChannel = guild.Channels.GetValueOrDefault(beforeChannelId);
-                
-                if (oldChannel == null)
-                {
-                    _logger.LogInformation("Temp channel {ChannelId} already gone.", beforeChannelId);
-                    _tempChannels.TryRemove(beforeChannelId, out _);
-                    return;
-                }
-
-                var usersInChannel = oldChannel.Users;
-                var userCount = usersInChannel.Count;
-                var onlyLeaverRemainsInCache =
-                    userCount == 1 &&
-                    usersInChannel.Any(u => u.Id == userId) &&
-                    afterChannelId != beforeChannelId;
-
                 _logger.LogInformation(
-                    "Temp channel {ChannelId} currently has {Count} users. onlyLeaverRemainsInCache={OnlyLeaver}",
-                    beforeChannelId,
-                    userCount,
-                    onlyLeaverRemainsInCache);
+                    "Retrying cleanup for temp channel {ChannelId} after short delay.",
+                    beforeChannelId);
 
-                if (userCount == 0 || onlyLeaverRemainsInCache)
-                {
-                    await oldChannel.DeleteAsync("Temp voice channel empty");
-
-                    if (_tempChannels.TryRemove(beforeChannelId, out _))
-                    {
-                        _logger.LogInformation("Successfully deleted empty temp channel {ChannelId}", beforeChannelId);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId}", beforeChannelId);
-                if (ex.Message.Contains("404")) _tempChannels.TryRemove(beforeChannelId, out _);
+                await Task.Delay(2500);
+                await TryCleanupTempChannelAsync(client, guildId, beforeChannelId, userId, afterChannelId);
             }
         }
 
@@ -233,6 +203,59 @@ public sealed class TempVoiceEventHandler :
                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource,
                     new DiscordInteractionResponseBuilder().WithContent("🔓 Channel **unlocked**. Everyone can join again.").AsEphemeral());
                 break;
+        }
+    }
+
+    private async Task<bool> TryCleanupTempChannelAsync(
+        DiscordClient client,
+        ulong guildId,
+        ulong channelId,
+        ulong leaverUserId,
+        ulong afterChannelId)
+    {
+        try
+        {
+            var guild = await client.GetGuildAsync(guildId);
+            var oldChannel = guild.Channels.GetValueOrDefault(channelId);
+
+            if (oldChannel == null)
+            {
+                _logger.LogInformation("Temp channel {ChannelId} already gone.", channelId);
+                _tempChannels.TryRemove(channelId, out _);
+                return true;
+            }
+
+            var usersInChannel = oldChannel.Users;
+            var userCount = usersInChannel.Count;
+            var onlyLeaverRemainsInCache =
+                userCount == 1 &&
+                usersInChannel.Any(u => u.Id == leaverUserId) &&
+                afterChannelId != channelId;
+
+            _logger.LogInformation(
+                "Temp channel {ChannelId} currently has {Count} users. onlyLeaverRemainsInCache={OnlyLeaver}",
+                channelId,
+                userCount,
+                onlyLeaverRemainsInCache);
+
+            if (userCount != 0 && !onlyLeaverRemainsInCache)
+                return false;
+
+            await oldChannel.DeleteAsync("Temp voice channel empty");
+            _tempChannels.TryRemove(channelId, out _);
+            _logger.LogInformation("Successfully deleted empty temp channel {ChannelId}", channelId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId}", channelId);
+            if (ex.Message.Contains("404"))
+            {
+                _tempChannels.TryRemove(channelId, out _);
+                return true;
+            }
+
+            return false;
         }
     }
 
