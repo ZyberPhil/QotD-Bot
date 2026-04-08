@@ -25,22 +25,34 @@ public sealed class DiscordLoggingEventHandler :
         _logger = logger;
     }
 
-    private async Task SendLogAsync(DiscordClient client, ulong guildId, LogType type, DiscordEmbed embed)
+    private async Task SendLogAsync(DiscordClient client, ulong guildId, DiscordEmbed embed, params LogType[] types)
     {
         try
         {
+            if (types.Length == 0)
+            {
+                return;
+            }
+
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var config = await db.LogRoutingConfigs
+            var routingTypes = types.Distinct().ToList();
+            var configs = await db.LogRoutingConfigs
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.GuildId == guildId && c.LogType == type && c.IsEnabled);
+                .Where(c => c.GuildId == guildId && c.IsEnabled && routingTypes.Contains(c.LogType) && c.ChannelId > 0)
+                .ToListAsync();
 
-            if (config != null && config.ChannelId > 0)
+            if (configs.Count == 0)
             {
-                if (client.Guilds.TryGetValue(guildId, out var guild))
+                return;
+            }
+
+            if (client.Guilds.TryGetValue(guildId, out var guild))
+            {
+                foreach (var channelId in configs.Select(c => c.ChannelId).Distinct())
                 {
-                    if (guild.Channels.TryGetValue(config.ChannelId, out var channel))
+                    if (guild.Channels.TryGetValue(channelId, out var channel))
                     {
                         var builder = new DiscordMessageBuilder().AddEmbed(embed);
                         await channel.SendMessageAsync(builder);
@@ -50,7 +62,8 @@ public sealed class DiscordLoggingEventHandler :
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send {LogType} log to channel", type);
+            var route = string.Join(", ", types.Select(t => t.ToString()));
+            _logger.LogError(ex, "Failed to send log to channel. Route types: {RouteTypes}", route);
         }
     }
 
@@ -65,7 +78,7 @@ public sealed class DiscordLoggingEventHandler :
             .WithTimestamp(DateTimeOffset.UtcNow)
             .WithFooter($"Author ID: {e.Message.Author?.Id} | Message ID: {e.Message.Id}");
 
-        await SendLogAsync(client, e.Guild.Id, LogType.MessageDeleted, embed.Build());
+        await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageDeleted);
     }
 
     public async Task HandleEventAsync(DiscordClient client, MessageUpdatedEventArgs e)
@@ -80,33 +93,53 @@ public sealed class DiscordLoggingEventHandler :
             .WithTimestamp(DateTimeOffset.UtcNow)
             .WithFooter($"Author ID: {e.Message?.Author?.Id} | Message ID: {e.Message?.Id}");
 
-        await SendLogAsync(client, e.Guild.Id, LogType.MessageUpdated, embed.Build());
+        await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageUpdated);
     }
 
     public async Task HandleEventAsync(DiscordClient client, GuildMemberAddedEventArgs e)
     {
+        var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
+        var joinedAt = FormatDate(e.Member.JoinedAt);
+
         var embed = new DiscordEmbedBuilder()
             .WithTitle("👋 Member Joined")
             .WithColor(DiscordColor.Green)
-            .WithDescription($"<@{e.Member.Id}> joined the server.")
-            .WithThumbnail(e.Member.AvatarUrl)
+            .WithDescription($"{e.Member.Mention} ist dem Server beigetreten.")
+            .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
+            .AddField("Beitrittsdatum", joinedAt, true)
+            .AddField("Rollen", roles)
             .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"ID: {e.Member.Id}");
+            .WithFooter($"User ID: {e.Member.Id} | Join Event");
 
-        await SendLogAsync(client, e.Guild.Id, LogType.MemberJoined, embed.Build());
+        if (!string.IsNullOrWhiteSpace(e.Member.AvatarUrl))
+        {
+            embed.WithThumbnail(e.Member.AvatarUrl);
+        }
+
+        await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MemberJoinLeave, LogType.MemberJoined);
     }
 
     public async Task HandleEventAsync(DiscordClient client, GuildMemberRemovedEventArgs e)
     {
+        var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
+        var joinedAt = FormatDate(e.Member.JoinedAt);
+
         var embed = new DiscordEmbedBuilder()
             .WithTitle("🚪 Member Left")
             .WithColor(DiscordColor.Red)
-            .WithDescription($"<@{e.Member.Id}> left the server.")
-            .WithThumbnail(e.Member.AvatarUrl)
+            .WithDescription($"{e.Member.Mention} hat den Server verlassen.")
+            .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
+            .AddField("Beitrittsdatum", joinedAt, true)
+            .AddField("Rollen", roles)
             .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"ID: {e.Member.Id}");
+            .WithFooter($"User ID: {e.Member.Id} | Leave Event");
 
-        await SendLogAsync(client, e.Guild.Id, LogType.MemberLeft, embed.Build());
+        if (!string.IsNullOrWhiteSpace(e.Member.AvatarUrl))
+        {
+            embed.WithThumbnail(e.Member.AvatarUrl);
+        }
+
+        await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MemberJoinLeave, LogType.MemberLeft);
     }
 
     public async Task HandleEventAsync(DiscordClient client, VoiceStateUpdatedEventArgs e)
@@ -142,6 +175,29 @@ public sealed class DiscordLoggingEventHandler :
             embed.WithDescription($"<@{userId}> moved from <#{beforeChannelId}> to <#{afterChannelId}>.");
         }
 
-        await SendLogAsync(client, guildId, LogType.VoiceStateUpdated, embed.Build());
+        await SendLogAsync(client, guildId, embed.Build(), LogType.VoiceJoinLeave, LogType.VoiceStateUpdated);
+    }
+
+    private static string FormatRoles(IEnumerable<DiscordRole> roles, ulong everyoneRoleId)
+    {
+        var roleMentions = roles
+            .Where(r => r.Id != everyoneRoleId)
+            .OrderByDescending(r => r.Position)
+            .Select(r => r.Mention)
+            .ToList();
+
+        return roleMentions.Count > 0
+            ? string.Join(", ", roleMentions)
+            : "Keine Rollen";
+    }
+
+    private static string FormatDate(DateTimeOffset? value)
+    {
+        if (value is null)
+        {
+            return "Unbekannt";
+        }
+
+        return $"<t:{value.Value.ToUnixTimeSeconds()}:F>";
     }
 }

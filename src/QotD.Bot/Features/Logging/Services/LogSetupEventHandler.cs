@@ -13,6 +13,15 @@ namespace QotD.Bot.Features.Logging.Services;
 public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCreatedEventArgs>
 {
     private readonly IServiceProvider _serviceProvider;
+    private static readonly LogType[] ConfigurableLogTypes =
+    [
+        LogType.MessageDeleted,
+        LogType.MessageUpdated,
+        LogType.MemberJoinLeave,
+        LogType.VoiceJoinLeave,
+        LogType.BotAction,
+        LogType.BotError
+    ];
 
     public LogSetupEventHandler(IServiceProvider serviceProvider)
     {
@@ -55,7 +64,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
         if (e.Interaction.Data.CustomId == "logsetup_typeselect")
         {
             var selectedTypeStr = e.Interaction.Data.Values[0];
-            if (Enum.TryParse<LogType>(selectedTypeStr, out var selectedType))
+            if (Enum.TryParse<LogType>(selectedTypeStr, out var selectedType) && ConfigurableLogTypes.Contains(selectedType))
             {
                 var channelSelect = new DiscordChannelSelectComponent($"logsetup_channel_{selectedType}", "Select destination channel");
                 var btnDisable = new DiscordButtonComponent(DiscordButtonStyle.Secondary, $"logsetup_disable_{selectedType}", "Disable / Unmap");
@@ -77,7 +86,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
         if (e.Interaction.Data.CustomId.StartsWith("logsetup_disable_"))
         {
             var typeStr = e.Interaction.Data.CustomId.Replace("logsetup_disable_", "");
-            if (Enum.TryParse<LogType>(typeStr, out var selectedType))
+            if (Enum.TryParse<LogType>(typeStr, out var selectedType) && ConfigurableLogTypes.Contains(selectedType))
             {
                 var config = await db.LogRoutingConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId && c.LogType == selectedType);
                 if (config != null)
@@ -93,7 +102,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
         if (e.Interaction.Data.CustomId.StartsWith("logsetup_channel_"))
         {
             var typeStr = e.Interaction.Data.CustomId.Replace("logsetup_channel_", "");
-            if (Enum.TryParse<LogType>(typeStr, out var selectedType))
+            if (Enum.TryParse<LogType>(typeStr, out var selectedType) && ConfigurableLogTypes.Contains(selectedType))
             {
                 var selectedChannelIdStr = e.Interaction.Data.Values[0];
                 if (ulong.TryParse(selectedChannelIdStr, out var channelId))
@@ -135,7 +144,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
 
         var sb = new StringBuilder();
         sb.AppendLine("Current Configuration:");
-        foreach (LogType type in Enum.GetValues(typeof(LogType)))
+        foreach (var type in ConfigurableLogTypes)
         {
             var cfg = configs.FirstOrDefault(c => c.LogType == type);
             if (cfg != null && cfg.IsEnabled && cfg.ChannelId > 0)
@@ -149,8 +158,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
         }
         embed.AddField("Mappings", sb.ToString());
 
-        var typeOptions = Enum.GetValues(typeof(LogType))
-            .Cast<LogType>()
+        var typeOptions = ConfigurableLogTypes
             .Select(t => new DiscordSelectComponentOption(t.ToString(), t.ToString(), $"Configure destination for {t} logs"))
             .ToList();
 

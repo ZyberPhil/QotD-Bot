@@ -11,6 +11,16 @@ namespace QotD.Bot.Features.Logging.Commands;
 
 public sealed class LogSetupCommand
 {
+    private static readonly LogType[] ConfigurableLogTypes =
+    [
+        LogType.MessageDeleted,
+        LogType.MessageUpdated,
+        LogType.MemberJoinLeave,
+        LogType.VoiceJoinLeave,
+        LogType.BotAction,
+        LogType.BotError
+    ];
+
     [Command("logsetup")]
     [RequirePermissions(DiscordPermission.ManageGuild)]
     [System.ComponentModel.Description("Open the interactive logging configuration panel.")]
@@ -31,7 +41,7 @@ public sealed class LogSetupCommand
 
         var sb = new StringBuilder();
         sb.AppendLine("Current Configuration:");
-        foreach (LogType type in Enum.GetValues(typeof(LogType)))
+        foreach (var type in ConfigurableLogTypes)
         {
             var cfg = configs.FirstOrDefault(c => c.LogType == type);
             if (cfg != null && cfg.IsEnabled && cfg.ChannelId > 0)
@@ -45,8 +55,7 @@ public sealed class LogSetupCommand
         }
         embed.AddField("Mappings", sb.ToString());
 
-        var typeOptions = Enum.GetValues(typeof(LogType))
-            .Cast<LogType>()
+        var typeOptions = ConfigurableLogTypes
             .Select(t => new DiscordSelectComponentOption(t.ToString(), t.ToString(), $"Configure destination for {t} logs"))
             .ToList();
 

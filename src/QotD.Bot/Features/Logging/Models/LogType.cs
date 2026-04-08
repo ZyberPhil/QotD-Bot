@@ -8,6 +8,10 @@ public enum LogType
     MemberJoined,
     MemberLeft,
     VoiceStateUpdated,
+
+    // Combined routing categories
+    MemberJoinLeave,
+    VoiceJoinLeave,
     
     // Bot internals
     BotAction,
