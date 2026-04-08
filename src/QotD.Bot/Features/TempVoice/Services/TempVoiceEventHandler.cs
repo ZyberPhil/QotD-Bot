@@ -16,6 +16,7 @@ public sealed class TempVoiceEventHandler :
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<TempVoiceEventHandler> _logger;
+    private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
 
     // channelId -> ownerId
     private readonly ConcurrentDictionary<ulong, ulong> _tempChannels = new();
@@ -24,6 +25,7 @@ public sealed class TempVoiceEventHandler :
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _logger.LogInformation("TempVoice handler initialized. InstanceId={InstanceId}", _instanceId);
     }
 
     public bool IsOwner(ulong channelId, ulong userId)
@@ -31,7 +33,8 @@ public sealed class TempVoiceEventHandler :
 
     public async Task HandleEventAsync(DiscordClient client, VoiceStateUpdatedEventArgs e)
     {
-        _logger.LogInformation("VOICE_EVENT: User {UserId}, Guild {GuildId}, Before: {BeforeId}, After: {AfterId}", 
+        _logger.LogInformation("VOICE_EVENT[{InstanceId}]: User {UserId}, Guild {GuildId}, Before: {BeforeId}, After: {AfterId}", 
+            _instanceId,
             e.After?.UserId ?? e.Before?.UserId, 
             e.After?.GuildId ?? e.Before?.GuildId,
             e.Before?.ChannelId, 
@@ -54,8 +57,8 @@ public sealed class TempVoiceEventHandler :
 
         if (shouldAttemptCleanup)
         {
-            _logger.LogInformation("Cleaning up channel {ChannelId} because user {UserId} left. (Gate before: {Before}, After: {After})", 
-                beforeChannelId, userId, beforeChannelId, afterChannelId);
+            _logger.LogInformation("Cleaning up channel {ChannelId} because user {UserId} left. (Gate before: {Before}, After: {After}) [InstanceId={InstanceId}]", 
+                beforeChannelId, userId, beforeChannelId, afterChannelId, _instanceId);
             
             // Give the cache a bit more time to update
             await Task.Delay(1000);
@@ -64,8 +67,9 @@ public sealed class TempVoiceEventHandler :
             if (!cleanedUp && _tempChannels.ContainsKey(beforeChannelId))
             {
                 _logger.LogInformation(
-                    "Retrying cleanup for temp channel {ChannelId} after short delay.",
-                    beforeChannelId);
+                    "Retrying cleanup for temp channel {ChannelId} after short delay. [InstanceId={InstanceId}]",
+                    beforeChannelId,
+                    _instanceId);
 
                 await Task.Delay(2500);
                 await TryCleanupTempChannelAsync(client, guildId, beforeChannelId, userId, afterChannelId);
@@ -74,8 +78,9 @@ public sealed class TempVoiceEventHandler :
         else if (beforeChannelId != 0 && afterChannelId != beforeChannelId)
         {
             _logger.LogDebug(
-                "Skip cleanup for channel {ChannelId}: not tracked and not recognized as managed temp voice.",
-                beforeChannelId);
+                "Skip cleanup for channel {ChannelId}: not tracked and not recognized as managed temp voice. [InstanceId={InstanceId}]",
+                beforeChannelId,
+                _instanceId);
         }
 
         // 2. Handle user joining the trigger channel
@@ -109,18 +114,24 @@ public sealed class TempVoiceEventHandler :
                 parent);
 
             _tempChannels[newChannel.Id] = userId;
+            _logger.LogInformation(
+                "Tracking temp channel {ChannelId} owner {OwnerId}. trackedCount={TrackedCount} [InstanceId={InstanceId}]",
+                newChannel.Id,
+                userId,
+                _tempChannels.Count,
+                _instanceId);
 
             // Move user
             await member.ModifyAsync(m => m.VoiceChannel = newChannel);
 
-            _logger.LogInformation("Created temp channel for {User} in {Guild}", member.DisplayName, guild.Name);
+            _logger.LogInformation("Created temp channel for {User} in {Guild} [InstanceId={InstanceId}]", member.DisplayName, guild.Name, _instanceId);
 
             // Send control panel
             await SendControlPanelAsync(newChannel, member);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create temp voice channel for user {UserId}", userId);
+            _logger.LogError(ex, "Failed to create temp voice channel for user {UserId} [InstanceId={InstanceId}]", userId, _instanceId);
         }
     }
 
@@ -233,7 +244,7 @@ public sealed class TempVoiceEventHandler :
 
             if (oldChannel == null)
             {
-                _logger.LogInformation("Temp channel {ChannelId} already gone.", channelId);
+                _logger.LogInformation("Temp channel {ChannelId} already gone. [InstanceId={InstanceId}]", channelId, _instanceId);
                 _tempChannels.TryRemove(channelId, out _);
                 return true;
             }
@@ -246,22 +257,23 @@ public sealed class TempVoiceEventHandler :
                 afterChannelId != channelId;
 
             _logger.LogInformation(
-                "Temp channel {ChannelId} currently has {Count} users. onlyLeaverRemainsInCache={OnlyLeaver}",
+                "Temp channel {ChannelId} currently has {Count} users. onlyLeaverRemainsInCache={OnlyLeaver} [InstanceId={InstanceId}]",
                 channelId,
                 userCount,
-                onlyLeaverRemainsInCache);
+                onlyLeaverRemainsInCache,
+                _instanceId);
 
             if (userCount != 0 && !onlyLeaverRemainsInCache)
                 return false;
 
             await oldChannel.DeleteAsync("Temp voice channel empty");
             _tempChannels.TryRemove(channelId, out _);
-            _logger.LogInformation("Successfully deleted empty temp channel {ChannelId}", channelId);
+            _logger.LogInformation("Successfully deleted empty temp channel {ChannelId} [InstanceId={InstanceId}]", channelId, _instanceId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId}", channelId);
+            _logger.LogWarning(ex, "Failed to cleanup temp channel {ChannelId} [InstanceId={InstanceId}]", channelId, _instanceId);
             if (ex.Message.Contains("404"))
             {
                 _tempChannels.TryRemove(channelId, out _);
@@ -305,7 +317,7 @@ public sealed class TempVoiceEventHandler :
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to resolve whether channel {ChannelId} is managed temp voice.", channelId);
+            _logger.LogDebug(ex, "Failed to resolve whether channel {ChannelId} is managed temp voice. [InstanceId={InstanceId}]", channelId, _instanceId);
             return false;
         }
     }
