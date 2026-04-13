@@ -11,15 +11,19 @@ public sealed class TeamsModule : IBotModule
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+    services.AddScoped<TeamActivityService>();
+    services.AddHostedService<TeamActivityBackgroundService>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
         services.AddTransient<TeamListService>();
+        services.AddScoped<TeamActivityService>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)
     {
         commands.AddCommands<TeamSetupCommand>();
+        commands.AddCommands<TeamCommand>();
     }
 }

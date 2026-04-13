@@ -20,6 +20,10 @@ public sealed class AppDbContext : DbContext
 
     // Teams
     public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
+    public DbSet<TeamActivityPolicy> TeamActivityPolicies => Set<TeamActivityPolicy>();
+    public DbSet<TeamActivityWeeklySnapshot> TeamActivityWeeklySnapshots => Set<TeamActivityWeeklySnapshot>();
+    public DbSet<TeamWarning> TeamWarnings => Set<TeamWarning>();
+    public DbSet<TeamLeaveEntry> TeamLeaveEntries => Set<TeamLeaveEntry>();
 
     // Birthdays
     public DbSet<UserBirthday> UserBirthdays => Set<UserBirthday>();
@@ -92,6 +96,36 @@ public sealed class AppDbContext : DbContext
         {
             entity.HasKey(c => c.GuildId);
             entity.Property(c => c.GuildId).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<TeamActivityPolicy>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.RoleId }).IsUnique();
+            entity.HasIndex(x => x.GuildId);
+        });
+
+        modelBuilder.Entity<TeamActivityWeeklySnapshot>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.WeekStartUtc, x.RoleId, x.UserId }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.WeekStartUtc });
+            entity.HasIndex(x => new { x.GuildId, x.UserId });
+        });
+
+        modelBuilder.Entity<TeamWarning>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.WarningType).HasConversion<int>();
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.IsActive });
+            entity.HasIndex(x => new { x.GuildId, x.WeekStartUtc, x.UserId, x.RoleId, x.WarningType });
+        });
+
+        modelBuilder.Entity<TeamLeaveEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.StartUtc });
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.EndUtc });
         });
     }
 }

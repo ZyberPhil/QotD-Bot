@@ -58,6 +58,15 @@ public sealed class LevelService
         entry.MessageCount += 1;
         entry.LastMessageXpAtUtc = nowUtc;
 
+        db.LevelActivityLogs.Add(new LevelActivityLog
+        {
+            GuildId = guildIdValue,
+            UserId = userIdValue,
+            ActivityType = LevelActivityType.Message,
+            Amount = 1,
+            OccurredAtUtc = nowUtc
+        });
+
         var previousLevel = entry.Level;
         while (entry.XP >= GetTotalXpForLevel(entry.Level + 1))
         {
@@ -113,6 +122,100 @@ public sealed class LevelService
         await db.SaveChangesAsync();
 
         return new LevelGrantResult(entry.Level > previousLevel, entry.Level, entry.XP, VoiceXpPerTick);
+    }
+
+    public async Task TrackVoiceMinuteAsync(ulong guildId, ulong userId, DateTimeOffset nowUtc)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var userIdValue = checked((long)userId);
+
+        var entry = await db.LevelUserStats
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue && x.UserId == userIdValue);
+
+        if (entry is null)
+        {
+            entry = new LevelUserStats
+            {
+                GuildId = guildIdValue,
+                UserId = userIdValue,
+                XP = 0,
+                Level = 0,
+                MessageCount = 0,
+                VoiceMinutes = 0,
+                LastMessageXpAtUtc = null,
+                LastVoiceXpAtUtc = null
+            };
+
+            db.LevelUserStats.Add(entry);
+        }
+
+        entry.VoiceMinutes += 1;
+        db.LevelActivityLogs.Add(new LevelActivityLog
+        {
+            GuildId = guildIdValue,
+            UserId = userIdValue,
+            ActivityType = LevelActivityType.VoiceMinute,
+            Amount = 1,
+            OccurredAtUtc = nowUtc
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<IReadOnlyDictionary<ulong, LevelUserActivitySummary>> GetUserActivitySummaryAsync(
+        ulong guildId,
+        IReadOnlyCollection<ulong> userIds,
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc)
+    {
+        if (userIds.Count == 0)
+        {
+            return new Dictionary<ulong, LevelUserActivitySummary>();
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var userIdsValue = userIds.Select(x => checked((long)x)).ToArray();
+
+        var grouped = await db.LevelActivityLogs
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildIdValue)
+            .Where(x => userIdsValue.Contains(x.UserId))
+            .Where(x => x.OccurredAtUtc >= fromUtc && x.OccurredAtUtc < toUtc)
+            .GroupBy(x => new { x.UserId, x.ActivityType })
+            .Select(x => new
+            {
+                x.Key.UserId,
+                x.Key.ActivityType,
+                Total = x.Sum(v => v.Amount)
+            })
+            .ToListAsync();
+
+        var result = userIds.ToDictionary(x => x, _ => new LevelUserActivitySummary(0, 0));
+
+        foreach (var row in grouped)
+        {
+            var userId = (ulong)row.UserId;
+            var current = result[userId];
+
+            if (row.ActivityType == LevelActivityType.Message)
+            {
+                result[userId] = current with { MessageCount = row.Total };
+                continue;
+            }
+
+            if (row.ActivityType == LevelActivityType.VoiceMinute)
+            {
+                result[userId] = current with { VoiceMinutes = row.Total };
+            }
+        }
+
+        return result;
     }
 
     public async Task<LevelUserSnapshot> GetUserSnapshotAsync(ulong guildId, ulong userId)
@@ -347,3 +450,5 @@ public sealed record LevelUserSnapshot(
 public sealed record LevelLeaderboardEntry(LevelUserSnapshot Snapshot, int Rank);
 
 public sealed record VoiceXpSettings(int MinActiveUsers, bool AllowSelfMutedOrDeafened);
+
+public sealed record LevelUserActivitySummary(int MessageCount, int VoiceMinutes);

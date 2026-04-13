@@ -66,6 +66,8 @@ public sealed class VoiceXpBackgroundService(
                     continue;
                 }
 
+                await levelService.TrackVoiceMinuteAsync(guild.Id, member.Id, nowUtc);
+
                 var result = await levelService.GrantVoiceXpAsync(guild.Id, member.Id, nowUtc);
                 if (!result.LeveledUp)
                 {

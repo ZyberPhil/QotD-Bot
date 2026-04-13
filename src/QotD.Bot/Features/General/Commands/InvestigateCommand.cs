@@ -3,6 +3,8 @@ using DSharpPlus;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
+using Microsoft.EntityFrameworkCore;
+using QotD.Bot.Data;
 using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.General.Commands;
@@ -12,6 +14,13 @@ namespace QotD.Bot.Features.General.Commands;
 /// </summary>
 public sealed class InvestigateCommand
 {
+    private readonly AppDbContext _db;
+
+    public InvestigateCommand(AppDbContext db)
+    {
+        _db = db;
+    }
+
     [Command("investigate")]
     [Description("Startet eine Analyse des angegebenen Subjekts (Users).")]
     public async Task ExecuteAsync(
@@ -42,6 +51,46 @@ public sealed class InvestigateCommand
         {
             embed.AddField("📥 Beigetreten", member.JoinedAt.ToString("d"), true)
                  .AddField("👤 Rollen", member.Roles.Any() ? string.Join(", ", member.Roles.Select(r => r.Name)) : "Keine", false);
+
+            if (context.Guild is not null)
+            {
+                var activeWarnings = await _db.TeamWarnings
+                    .AsNoTracking()
+                    .Where(x => x.GuildId == context.Guild.Id && x.UserId == member.Id && x.IsActive)
+                    .OrderByDescending(x => x.CreatedAtUtc)
+                    .ToListAsync();
+
+                var lastSnapshot = await _db.TeamActivityWeeklySnapshots
+                    .AsNoTracking()
+                    .Where(x => x.GuildId == context.Guild.Id && x.UserId == member.Id)
+                    .OrderByDescending(x => x.WeekStartUtc)
+                    .FirstOrDefaultAsync();
+
+                embed.AddField("⚠️ Aktive Verwarnungen", activeWarnings.Count.ToString(), true);
+
+                if (activeWarnings.Count > 0)
+                {
+                    var lastWarning = activeWarnings[0];
+                    var source = lastWarning.CreatedByUserId == 0 ? "Auto" : "Manuell";
+                    embed.AddField(
+                        "🧾 Letzte Verwarnung",
+                        $"{source} | {lastWarning.CreatedAtUtc:yyyy-MM-dd}\n{lastWarning.Reason}",
+                        false);
+                }
+
+                if (lastSnapshot is not null)
+                {
+                    var status = lastSnapshot.WasExcused ? "Abgemeldet" : lastSnapshot.MeetsMinimum ? "OK" : "Unter Minimum";
+                    embed.AddField(
+                        "📊 Letzter Team-Activity-Snapshot",
+                        $"Woche: {lastSnapshot.WeekStartUtc:yyyy-MM-dd}\n" +
+                        $"Nachrichten: {lastSnapshot.Messages}\n" +
+                        $"Voice-Minuten: {lastSnapshot.VoiceMinutes}\n" +
+                        $"Score: {lastSnapshot.CombinedScore:F1}\n" +
+                        $"Status: {status}",
+                        false);
+                }
+            }
         }
         else
         {

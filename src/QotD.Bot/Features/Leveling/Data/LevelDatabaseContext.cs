@@ -11,6 +11,7 @@ public sealed class LevelDatabaseContext : DbContext
 
     public DbSet<LevelUserStats> LevelUserStats => Set<LevelUserStats>();
     public DbSet<LevelingConfig> LevelingConfigs => Set<LevelingConfig>();
+    public DbSet<LevelActivityLog> LevelActivityLogs => Set<LevelActivityLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +42,15 @@ public sealed class LevelDatabaseContext : DbContext
             entity.Property(x => x.VoiceAllowSelfMutedOrDeafened).HasDefaultValue(false);
 
             entity.HasIndex(x => x.GuildId).IsUnique();
+        });
+
+        modelBuilder.Entity<LevelActivityLog>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ActivityType).HasConversion<int>();
+            entity.Property(x => x.Amount).HasDefaultValue(1);
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.OccurredAtUtc });
+            entity.HasIndex(x => new { x.GuildId, x.OccurredAtUtc, x.ActivityType });
         });
     }
 }
