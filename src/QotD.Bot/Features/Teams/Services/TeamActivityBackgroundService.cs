@@ -64,5 +64,7 @@ public sealed class TeamActivityBackgroundService(
                 logger.LogError(ex, "Failed team activity check for guild {GuildId}", guildId);
             }
         }
+
+        await service.ProcessWeeklyReportsAsync(Discord, ct);
     }
 }

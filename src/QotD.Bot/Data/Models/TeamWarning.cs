@@ -32,5 +32,16 @@ public sealed class TeamWarning
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsResolved { get; set; } = false;
+
+    public DateTimeOffset? ResolvedAtUtc { get; set; }
+
+    public ulong? ResolvedByUserId { get; set; }
+
+    [MaxLength(1000)]
+    public string? ResolutionNote { get; set; }
+
     public DateTimeOffset? WeekStartUtc { get; set; }
+
+    public ICollection<TeamWarningNote> Notes { get; set; } = [];
 }

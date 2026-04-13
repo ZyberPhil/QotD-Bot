@@ -13,12 +13,14 @@ public sealed class TeamListEventHandler :
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly TeamListService _teamListService;
+    private readonly TeamActivityService _teamActivityService;
     private readonly ILogger<TeamListEventHandler> _logger;
 
-    public TeamListEventHandler(IServiceProvider serviceProvider, TeamListService teamListService, ILogger<TeamListEventHandler> logger)
+    public TeamListEventHandler(IServiceProvider serviceProvider, TeamListService teamListService, TeamActivityService teamActivityService, ILogger<TeamListEventHandler> logger)
     {
         _serviceProvider = serviceProvider;
         _teamListService = teamListService;
+        _teamActivityService = teamActivityService;
         _logger = logger;
     }
 
@@ -44,6 +46,25 @@ public sealed class TeamListEventHandler :
 
         if (requiresRefresh)
         {
+            var oldRoleId = config.TrackedRoles.FirstOrDefault(oldRoles.Contains);
+            var newRoleId = config.TrackedRoles.FirstOrDefault(newRoles.Contains);
+
+            if (oldRoleId != newRoleId)
+            {
+                var oldRoleName = oldRoleId != 0 ? e.Guild.Roles.GetValueOrDefault(oldRoleId)?.Name : null;
+                var newRoleName = newRoleId != 0 ? e.Guild.Roles.GetValueOrDefault(newRoleId)?.Name : null;
+
+                await _teamActivityService.RecordRoleChangeAsync(
+                    e.Guild.Id,
+                    e.Member.Id,
+                    oldRoleId == 0 ? null : oldRoleId,
+                    oldRoleName,
+                    newRoleId == 0 ? null : newRoleId,
+                    newRoleName,
+                    DateTimeOffset.UtcNow,
+                    "Tracked team role changed");
+            }
+
             await _teamListService.RefreshTeamListAsync(client, e.Guild.Id);
         }
     }

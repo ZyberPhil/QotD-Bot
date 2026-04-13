@@ -22,7 +22,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
     public DbSet<TeamActivityPolicy> TeamActivityPolicies => Set<TeamActivityPolicy>();
     public DbSet<TeamActivityWeeklySnapshot> TeamActivityWeeklySnapshots => Set<TeamActivityWeeklySnapshot>();
+    public DbSet<TeamWeeklyReportConfig> TeamWeeklyReportConfigs => Set<TeamWeeklyReportConfig>();
+    public DbSet<TeamRoleChangeHistory> TeamRoleChangeHistories => Set<TeamRoleChangeHistory>();
     public DbSet<TeamWarning> TeamWarnings => Set<TeamWarning>();
+    public DbSet<TeamWarningNote> TeamWarningNotes => Set<TeamWarningNote>();
     public DbSet<TeamLeaveEntry> TeamLeaveEntries => Set<TeamLeaveEntry>();
 
     // Birthdays
@@ -113,12 +116,36 @@ public sealed class AppDbContext : DbContext
             entity.HasIndex(x => new { x.GuildId, x.UserId });
         });
 
+        modelBuilder.Entity<TeamWeeklyReportConfig>(entity =>
+        {
+            entity.HasKey(x => x.GuildId);
+            entity.Property(x => x.GuildId).ValueGeneratedNever();
+            entity.HasIndex(x => x.ChannelId);
+        });
+
+        modelBuilder.Entity<TeamRoleChangeHistory>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.ChangedAtUtc });
+        });
+
         modelBuilder.Entity<TeamWarning>(entity =>
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.WarningType).HasConversion<int>();
-            entity.HasIndex(x => new { x.GuildId, x.UserId, x.IsActive });
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.IsActive, x.IsResolved });
             entity.HasIndex(x => new { x.GuildId, x.WeekStartUtc, x.UserId, x.RoleId, x.WarningType });
+        });
+
+        modelBuilder.Entity<TeamWarningNote>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.NoteType).HasConversion<int>();
+            entity.HasOne(x => x.Warning)
+                  .WithMany(w => w.Notes)
+                  .HasForeignKey(x => x.WarningId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.GuildId, x.WarningId, x.CreatedAtUtc });
         });
 
         modelBuilder.Entity<TeamLeaveEntry>(entity =>

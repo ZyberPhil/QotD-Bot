@@ -54,11 +54,19 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
             case "teams":
                 embed.WithTitle("👥 Team Commands");
                 sb.AppendLine("> **`/teamsetup`** - Interactive team role tracking setup panel.");
+                sb.AppendLine("> **`/team me`** - Shows your current weekly progress and warning status.");
                 sb.AppendLine("> **`/team ranking`** - Weekly team activity ranking.");
                 sb.AppendLine("> **`/team minima <role> <messages> <voiceMinutes>`** - Set weekly activity minimum per role (Admin).");
+                sb.AppendLine("> **`/team reportsetup <#channel>`** - Set the weekly report channel (Admin)." );
+                sb.AppendLine("> **`/team reportdisable`** - Disable the weekly report (Admin)." );
                 sb.AppendLine("> **`/team warnings [user]`** - Show active team warnings (Admin).");
                 sb.AppendLine("> **`/team warningsadd <user> <reason>`** - Add a manual warning (Admin).");
                 sb.AppendLine("> **`/team warningsremove <id>`** - Remove/deactivate warning by ID (Admin).");
+                sb.AppendLine("> **`/team warningsnote lead <id> <text>`** - Add a teamlead comment to a warning (Admin)." );
+                sb.AppendLine("> **`/team warningsnote statement <id> <text>`** - Add your statement to a warning." );
+                sb.AppendLine("> **`/team warningsnote resolve <id> <text>`** - Close a warning with a resolution note (Admin)." );
+                sb.AppendLine("> **`/team warningsnote list <id>`** - Show all notes for a warning." );
+                sb.AppendLine("> **`/team rolehistory [user]`** - Show tracked role changes for a team member." );
                 sb.AppendLine("> **`/team leavestart <reason> [days]`** - Start leave/absence with reason.");
                 sb.AppendLine("> **`/team leaveend`** - End active leave.");
                 sb.AppendLine("> **`/team leavestats [user]`** - Show leave count and total duration.");
@@ -106,6 +114,8 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 embed.WithTitle("⚙️ Configuration and Admin");
                 sb.AppendLine("> **`/logsetup`** - Interactive logging configuration panel.");
                 sb.AppendLine("> **`/teamsetup`** - Team roles setup panel.");
+                sb.AppendLine("> **`/team me`** - Your weekly team status.");
+                sb.AppendLine("> **`/team reportsetup`** - Weekly report channel.");
                 sb.AppendLine("> **`/birthdaysetup`** - Birthday module setup.");
                 sb.AppendLine("> **`/voice setup`** - Temp voice setup.");
                 sb.AppendLine("> **`/levelingsetup ...`** - Leveling setup commands.");

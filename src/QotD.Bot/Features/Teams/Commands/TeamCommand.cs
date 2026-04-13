@@ -19,6 +19,55 @@ public sealed class TeamCommand
         _teamActivityService = teamActivityService;
     }
 
+    [Command("me")]
+    [Description("Zeigt deinen aktuellen Wochenstatus, Rest bis zum Minimum und Verwarnungsstatus.")]
+    public async ValueTask MeAsync(CommandContext ctx)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        var status = await _teamActivityService.BuildUserWeeklyStatusAsync(ctx.Guild, ctx.User.Id);
+        if (status is null)
+        {
+            await ctx.RespondAsync("Du bist aktuell in keiner getrackten Team-Rolle.");
+            return;
+        }
+
+        var roleLines = status.RoleProgress.Count == 0
+            ? "Keine Team-Rolle mit Mindestwerten konfiguriert."
+            : string.Join("\n", status.RoleProgress.Select(role =>
+            {
+                var roleName = ctx.Guild.Roles.GetValueOrDefault(role.RoleId)?.Mention ?? $"<@&{role.RoleId}>";
+                var messageState = role.MeetsMessageMinimum ? "OK" : $"- {role.RemainingMessages} Msg";
+                var voiceState = role.MeetsVoiceMinimum ? "OK" : $"- {role.RemainingVoiceMinutes} Min";
+                return $"{roleName}: Msg {messageState}, Voice {voiceState}";
+            }));
+
+        var warningsText = status.ActiveWarningCount == 0
+            ? "Keine aktiven Verwarnungen."
+            : string.Join("\n", status.RecentWarnings.Select(w =>
+            {
+                var source = w.WarningType == TeamWarningType.MissingMinimum ? "Auto" : "Manuell";
+                return $"#{w.WarningId} ({source}) - {w.Reason}";
+            }));
+
+        var embed = new DiscordEmbedBuilder()
+            .WithTitle($"Dein Team-Status - {ctx.User.Username}")
+            .WithColor(DiscordColor.Blurple)
+            .WithDescription(
+                $"Nachrichten diese Woche: **{status.MessageCount}**\n" +
+                $"Voice-Minuten diese Woche: **{status.VoiceMinutes}**\n" +
+                $"Score: **{status.Score:F1}**")
+            .AddField("Fortschritt", TruncateField(roleLines), false)
+            .AddField("Warnungen", TruncateField(warningsText), false)
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
+
     [Command("ranking")]
     [Description("Zeigt das Team-Ranking für die aktuelle Woche.")]
     public async ValueTask RankingAsync(CommandContext ctx)
@@ -92,6 +141,40 @@ public sealed class TeamCommand
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }
 
+    [Command("reportsetup")]
+    [Description("Legt den Kanal für den wöchentlichen Teamreport fest.")]
+    [RequirePermissions(DiscordPermission.ManageGuild)]
+    public async ValueTask ReportSetupAsync(CommandContext ctx, [Description("Kanal für den Wochenreport")] DiscordChannel channel)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        var config = await _teamActivityService.SetWeeklyReportChannelAsync(ctx.Guild.Id, channel.Id);
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
+            .WithTitle("Wöchentlicher Teamreport aktiviert")
+            .WithColor(DiscordColor.SpringGreen)
+            .WithDescription($"Berichte werden jetzt in {channel.Mention} gepostet.\nNächster Report läuft automatisch am Wochenwechsel.")
+            .WithTimestamp(DateTimeOffset.UtcNow)));
+    }
+
+    [Command("reportdisable")]
+    [Description("Deaktiviert den wöchentlichen Teamreport.")]
+    [RequirePermissions(DiscordPermission.ManageGuild)]
+    public async ValueTask ReportDisableAsync(CommandContext ctx)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        await _teamActivityService.DisableWeeklyReportAsync(ctx.Guild.Id);
+        await ctx.RespondAsync("Der wöchentliche Teamreport wurde deaktiviert.");
+    }
+
     [Command("warnings")]
     [Description("Zeigt aktive Team-Verwarnungen (optional für einen User).")]
     [RequirePermissions(DiscordPermission.ManageGuild)]
@@ -124,6 +207,45 @@ public sealed class TeamCommand
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
+
+    [Command("rolehistory")]
+    [Description("Zeigt die Rollenwechsel-Historie eines Teammitglieds.")]
+    public async ValueTask RoleHistoryAsync(CommandContext ctx, [Description("Optionaler User")] DiscordUser? user = null)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        var target = user ?? ctx.User;
+        if (user is not null && ctx.Member?.Permissions.HasPermission(DiscordPermission.ManageGuild) != true)
+        {
+            await ctx.RespondAsync("Du kannst die Rollen-Historie anderer nur mit der Berechtigung Server verwalten einsehen.");
+            return;
+        }
+
+        var history = await _teamActivityService.GetRoleChangeHistoryAsync(ctx.Guild.Id, target.Id);
+        if (history.Count == 0)
+        {
+            await ctx.RespondAsync("Keine Rollenwechsel-Historie gefunden.");
+            return;
+        }
+
+        var lines = history.Select(entry =>
+        {
+            var fromRole = entry.OldRoleName ?? (entry.OldRoleId.HasValue ? $"<@&{entry.OldRoleId.Value}>" : "Keine");
+            var toRole = entry.NewRoleName ?? (entry.NewRoleId.HasValue ? $"<@&{entry.NewRoleId.Value}>" : "Keine");
+            var reason = string.IsNullOrWhiteSpace(entry.ChangeReason) ? string.Empty : $" | {entry.ChangeReason}";
+            return $"**{entry.ChangedAtUtc:yyyy-MM-dd HH:mm} UTC**: {fromRole} -> {toRole}{reason}";
+        });
+
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
+            .WithTitle($"Rollenwechsel von {target.Username}")
+            .WithColor(DiscordColor.Blurple)
+            .WithDescription(string.Join("\n\n", lines))
+            .WithTimestamp(DateTimeOffset.UtcNow)));
     }
 
     [Command("warningsadd")]
@@ -284,5 +406,130 @@ public sealed class TeamCommand
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
+
+    [Command("warningsnote")]
+    [Description("Notizen und Abschlussstatus zu einer Warnung verwalten.")]
+    public sealed class WarningNoteGroup
+    {
+        private readonly TeamActivityService _teamActivityService;
+
+        public WarningNoteGroup(TeamActivityService teamActivityService)
+        {
+            _teamActivityService = teamActivityService;
+        }
+
+        [Command("lead")]
+        [Description("Fügt einer Warnung einen Kommentar vom Teamlead hinzu.")]
+        [RequirePermissions(DiscordPermission.ManageGuild)]
+        public async ValueTask LeadCommentAsync(CommandContext ctx, [Description("Warnungs-ID")] long warningId, [Description("Kommentar")] string content)
+        {
+            await AddNoteAsync(ctx, (int)warningId, TeamWarningNoteType.LeadComment, content, requireOwner: false);
+        }
+
+        [Command("statement")]
+        [Description("Fügt einer Warnung die Stellungnahme des Users hinzu.")]
+        public async ValueTask UserStatementAsync(CommandContext ctx, [Description("Warnungs-ID")] long warningId, [Description("Stellungnahme")] string content)
+        {
+            await AddNoteAsync(ctx, (int)warningId, TeamWarningNoteType.UserStatement, content, requireOwner: true);
+        }
+
+        [Command("resolve")]
+        [Description("Schließt eine Warnung mit einer Abschlussnotiz.")]
+        [RequirePermissions(DiscordPermission.ManageGuild)]
+        public async ValueTask ResolveAsync(CommandContext ctx, [Description("Warnungs-ID")] long warningId, [Description("Abschlussnotiz")] string content)
+        {
+            await AddNoteAsync(ctx, (int)warningId, TeamWarningNoteType.ResolutionNote, content, requireOwner: false);
+        }
+
+        [Command("list")]
+        [Description("Zeigt alle Notizen zu einer Warnung an.")]
+        public async ValueTask ListAsync(CommandContext ctx, [Description("Warnungs-ID")] long warningId)
+        {
+            if (ctx.Guild is null)
+            {
+                await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+                return;
+            }
+
+            var warning = await _teamActivityService.GetWarningByIdAsync(ctx.Guild.Id, (int)warningId);
+            if (warning is null)
+            {
+                await ctx.RespondAsync("Warnung nicht gefunden.");
+                return;
+            }
+
+            if (ctx.Member?.Permissions.HasPermission(DiscordPermission.ManageGuild) != true && warning.UserId != ctx.User.Id)
+            {
+                await ctx.RespondAsync("Du kannst nur deine eigenen Warnungen einsehen.");
+                return;
+            }
+
+            var notes = await _teamActivityService.GetWarningNotesAsync(ctx.Guild.Id, (int)warningId);
+            if (notes.Count == 0)
+            {
+                await ctx.RespondAsync("Keine Notizen zu dieser Warnung vorhanden.");
+                return;
+            }
+
+            var lines = notes.Select(note =>
+            {
+                var kind = note.NoteType switch
+                {
+                    TeamWarningNoteType.LeadComment => "Teamlead",
+                    TeamWarningNoteType.UserStatement => "User",
+                    _ => "Abschluss"
+                };
+
+                return $"**{note.CreatedAtUtc:yyyy-MM-dd HH:mm} UTC** [{kind}] <@{note.AuthorUserId}>\n{note.Content}";
+            });
+
+            await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
+                .WithTitle($"Notizen zu Warnung #{warningId}")
+                .WithColor(DiscordColor.Orange)
+                .WithDescription(string.Join("\n\n", lines))
+                .WithFooter(warning.IsResolved ? "Status: gelöst" : "Status: offen")
+                .WithTimestamp(DateTimeOffset.UtcNow)));
+        }
+
+        private async Task AddNoteAsync(CommandContext ctx, int warningId, TeamWarningNoteType type, string content, bool requireOwner)
+        {
+            if (ctx.Guild is null)
+            {
+                await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                await ctx.RespondAsync("Bitte gib einen Inhalt an.");
+                return;
+            }
+
+            var warning = await _teamActivityService.GetWarningByIdAsync(ctx.Guild.Id, warningId);
+            if (warning is null)
+            {
+                await ctx.RespondAsync("Warnung nicht gefunden.");
+                return;
+            }
+
+            if (requireOwner && ctx.Member?.Permissions.HasPermission(DiscordPermission.ManageGuild) != true && warning.UserId != ctx.User.Id)
+            {
+                await ctx.RespondAsync("Du kannst nur auf deine eigenen Warnungen antworten.");
+                return;
+            }
+
+            var note = await _teamActivityService.AddWarningNoteAsync(ctx.Guild.Id, warningId, ctx.User.Id, type, content);
+            var response = type == TeamWarningNoteType.ResolutionNote
+                ? "Warnung wurde geschlossen und mit einer Abschlussnotiz versehen."
+                : "Notiz wurde gespeichert.";
+
+            await ctx.RespondAsync($"{response} (#{note.Id})");
+        }
+    }
+
+    private static string TruncateField(string content)
+    {
+        return content.Length <= 1024 ? content : content[..1021] + "...";
     }
 }

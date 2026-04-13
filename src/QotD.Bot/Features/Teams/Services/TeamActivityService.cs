@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
 using QotD.Bot.Features.Leveling.Services;
+using System.Text;
 
 namespace QotD.Bot.Features.Teams.Services;
 
@@ -235,7 +236,7 @@ public sealed class TeamActivityService(
     {
         var query = db.TeamWarnings
             .AsNoTracking()
-            .Where(x => x.GuildId == guildId && x.IsActive);
+            .Where(x => x.GuildId == guildId && x.IsActive && !x.IsResolved);
 
         if (userId.HasValue)
         {
@@ -246,6 +247,12 @@ public sealed class TeamActivityService(
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(50)
             .ToListAsync();
+    }
+
+    public async Task<TeamWarning?> GetWarningByIdAsync(ulong guildId, int warningId)
+    {
+        return await db.TeamWarnings
+            .FirstOrDefaultAsync(x => x.GuildId == guildId && x.Id == warningId);
     }
 
     public async Task<TeamLeaveEntry> StartLeaveAsync(ulong guildId, ulong userId, string reason, DateTimeOffset? endUtc)
@@ -319,6 +326,303 @@ public sealed class TeamActivityService(
             .OrderByDescending(x => x.StartUtc)
             .Take(30)
             .ToListAsync();
+    }
+
+    public async Task<TeamWeeklyReportConfig> SetWeeklyReportChannelAsync(ulong guildId, ulong channelId)
+    {
+        var config = await db.TeamWeeklyReportConfigs
+            .FirstOrDefaultAsync(x => x.GuildId == guildId);
+
+        var currentWeekStart = GetWeekStartUtc(DateTimeOffset.UtcNow);
+
+        if (config is null)
+        {
+            config = new TeamWeeklyReportConfig
+            {
+                GuildId = guildId,
+                ChannelId = channelId,
+                IsEnabled = true,
+                LastReportedWeekStartUtc = currentWeekStart,
+                CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+
+            db.TeamWeeklyReportConfigs.Add(config);
+        }
+        else
+        {
+            config.ChannelId = channelId;
+            config.IsEnabled = true;
+            config.LastReportedWeekStartUtc = currentWeekStart;
+        }
+
+        await db.SaveChangesAsync();
+        return config;
+    }
+
+    public async Task DisableWeeklyReportAsync(ulong guildId)
+    {
+        var config = await db.TeamWeeklyReportConfigs
+            .FirstOrDefaultAsync(x => x.GuildId == guildId);
+
+        if (config is null)
+        {
+            return;
+        }
+
+        config.IsEnabled = false;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TeamWeeklyReportConfig?> GetWeeklyReportConfigAsync(ulong guildId)
+    {
+        return await db.TeamWeeklyReportConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.GuildId == guildId);
+    }
+
+    public async Task<TeamUserWeeklyStatus?> BuildUserWeeklyStatusAsync(DiscordGuild guild, ulong userId)
+    {
+        var context = await BuildTeamContextAsync(guild);
+        var member = context.Members.FirstOrDefault(x => x.UserId == userId);
+        if (member is null)
+        {
+            return null;
+        }
+
+        var weekStartUtc = GetWeekStartUtc(DateTimeOffset.UtcNow);
+        var nowUtc = DateTimeOffset.UtcNow;
+        var activity = await levelService.GetUserActivitySummaryAsync(guild.Id, [userId], weekStartUtc, nowUtc);
+        var summary = activity.GetValueOrDefault(userId, new LevelUserActivitySummary(0, 0));
+        var activeWarnings = await db.TeamWarnings
+            .AsNoTracking()
+            .Where(x => x.GuildId == guild.Id && x.UserId == userId && x.IsActive && !x.IsResolved)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync();
+
+        var roles = context.Members
+            .Where(x => x.UserId == userId)
+            .Select(x => x.PrimaryRoleId)
+            .Distinct()
+            .ToArray();
+
+        var roleProgress = new List<TeamRoleProgress>();
+        foreach (var roleId in roles)
+        {
+            var policy = context.PolicyByRoleId.GetValueOrDefault(roleId);
+            if (policy is null)
+            {
+                continue;
+            }
+
+            roleProgress.Add(new TeamRoleProgress(
+                roleId,
+                policy.MinMessagesPerWeek,
+                policy.MinVoiceMinutesPerWeek,
+                Math.Max(0, policy.MinMessagesPerWeek - summary.MessageCount),
+                Math.Max(0, policy.MinVoiceMinutesPerWeek - summary.VoiceMinutes),
+                summary.MessageCount >= policy.MinMessagesPerWeek,
+                summary.VoiceMinutes >= policy.MinVoiceMinutesPerWeek));
+        }
+
+        return new TeamUserWeeklyStatus(
+            userId,
+            summary.MessageCount,
+            summary.VoiceMinutes,
+            CalculateScore(summary.MessageCount, summary.VoiceMinutes),
+            activeWarnings.Count,
+            activeWarnings.Take(3).Select(x => new TeamWarningSummary(x.Id, x.Reason, x.WarningType, x.CreatedAtUtc, x.IsResolved)).ToList(),
+            roleProgress);
+    }
+
+    public async Task<IReadOnlyList<TeamRoleChangeHistory>> GetRoleChangeHistoryAsync(ulong guildId, ulong userId)
+    {
+        return await db.TeamRoleChangeHistories
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildId && x.UserId == userId)
+            .OrderByDescending(x => x.ChangedAtUtc)
+            .Take(30)
+            .ToListAsync();
+    }
+
+    public async Task RecordRoleChangeAsync(
+        ulong guildId,
+        ulong userId,
+        ulong? oldRoleId,
+        string? oldRoleName,
+        ulong? newRoleId,
+        string? newRoleName,
+        DateTimeOffset changedAtUtc,
+        string? changeReason = null)
+    {
+        if (oldRoleId == newRoleId)
+        {
+            return;
+        }
+
+        db.TeamRoleChangeHistories.Add(new TeamRoleChangeHistory
+        {
+            GuildId = guildId,
+            UserId = userId,
+            OldRoleId = oldRoleId,
+            OldRoleName = oldRoleName,
+            NewRoleId = newRoleId,
+            NewRoleName = newRoleName,
+            ChangedAtUtc = changedAtUtc,
+            ChangeReason = changeReason
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TeamWarningNote> AddWarningNoteAsync(
+        ulong guildId,
+        int warningId,
+        ulong authorUserId,
+        TeamWarningNoteType noteType,
+        string content)
+    {
+        var warning = await db.TeamWarnings
+            .FirstOrDefaultAsync(x => x.Id == warningId && x.GuildId == guildId);
+
+        if (warning is null)
+        {
+            throw new InvalidOperationException("Warnung nicht gefunden.");
+        }
+
+        var note = new TeamWarningNote
+        {
+            WarningId = warningId,
+            GuildId = guildId,
+            AuthorUserId = authorUserId,
+            NoteType = noteType,
+            Content = content.Trim(),
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+
+        db.TeamWarningNotes.Add(note);
+
+        if (noteType == TeamWarningNoteType.ResolutionNote)
+        {
+            warning.IsResolved = true;
+            warning.IsActive = false;
+            warning.ResolvedAtUtc = note.CreatedAtUtc;
+            warning.ResolvedByUserId = authorUserId;
+            warning.ResolutionNote = note.Content;
+        }
+
+        await db.SaveChangesAsync();
+        return note;
+    }
+
+    public async Task<IReadOnlyList<TeamWarningNote>> GetWarningNotesAsync(ulong guildId, int warningId)
+    {
+        return await db.TeamWarningNotes
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildId && x.WarningId == warningId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync();
+    }
+
+    public async Task<TeamWeeklyReportResult?> TryBuildWeeklyReportAsync(ulong guildId, DateTimeOffset weekStartUtc)
+    {
+        var guildContext = await db.TeamListConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.GuildId == guildId);
+
+        if (guildContext is null || guildContext.TrackedRoles.Length == 0)
+        {
+            return null;
+        }
+
+        var trackedRoleIds = guildContext.TrackedRoles;
+        var weekEndUtc = weekStartUtc.AddDays(7);
+
+        var snapshots = await db.TeamActivityWeeklySnapshots
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildId && x.WeekStartUtc == weekStartUtc)
+            .ToListAsync();
+
+        var topActive = snapshots
+            .OrderByDescending(x => x.CombinedScore)
+            .ThenByDescending(x => x.Messages)
+            .ThenByDescending(x => x.VoiceMinutes)
+            .Take(5)
+            .ToList();
+
+        var underMinimum = snapshots
+            .Where(x => !x.MeetsMinimum && !x.WasExcused)
+            .OrderByDescending(x => x.Messages + x.VoiceMinutes)
+            .ToList();
+
+        var leaveEntries = await db.TeamLeaveEntries
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildId)
+            .Where(x => x.StartUtc < weekEndUtc)
+            .Where(x => x.EndUtc == null || x.EndUtc > weekStartUtc)
+            .ToListAsync();
+
+        var warnings = await db.TeamWarnings
+            .AsNoTracking()
+            .Where(x => x.GuildId == guildId && x.CreatedAtUtc >= weekStartUtc && x.CreatedAtUtc < weekEndUtc)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync();
+
+        return new TeamWeeklyReportResult(
+            guildId,
+            weekStartUtc,
+            weekEndUtc,
+            topActive,
+            underMinimum,
+            leaveEntries,
+            warnings,
+            trackedRoleIds);
+    }
+
+    public async Task ProcessWeeklyReportsAsync(DiscordClient client, CancellationToken ct)
+    {
+        var currentWeekStart = GetWeekStartUtc(DateTimeOffset.UtcNow);
+
+        var configs = await db.TeamWeeklyReportConfigs
+            .Where(x => x.IsEnabled && x.ChannelId.HasValue)
+            .ToListAsync(ct);
+
+        foreach (var config in configs)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            var lastReportedWeek = config.LastReportedWeekStartUtc;
+            if (lastReportedWeek.HasValue && lastReportedWeek.Value >= currentWeekStart)
+            {
+                continue;
+            }
+
+            var reportWeekStart = currentWeekStart.AddDays(-7);
+            var report = await TryBuildWeeklyReportAsync(config.GuildId, reportWeekStart);
+            if (report is null)
+            {
+                continue;
+            }
+
+            if (!client.Guilds.TryGetValue(config.GuildId, out var guild))
+            {
+                continue;
+            }
+
+            if (!guild.Channels.TryGetValue(config.ChannelId!.Value, out var channel))
+            {
+                continue;
+            }
+
+            var embed = BuildWeeklyReportEmbed(guild, report);
+            await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
+
+            config.LastReportedWeekStartUtc = currentWeekStart;
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private async Task<TeamContext> BuildTeamContextAsync(DiscordGuild guild)
@@ -451,6 +755,60 @@ public sealed class TeamActivityService(
             // Ignore DM errors (blocked DMs, privacy settings)
         }
     }
+
+    private static DiscordEmbedBuilder BuildWeeklyReportEmbed(DiscordGuild guild, TeamWeeklyReportResult report)
+    {
+        var embed = new DiscordEmbedBuilder()
+            .WithTitle($"Weekly Team Report - {guild.Name}")
+            .WithColor(DiscordColor.Blurple)
+            .WithTimestamp(DateTimeOffset.UtcNow)
+            .WithFooter($"Week starting {report.WeekStartUtc:yyyy-MM-dd}");
+
+        var topActiveText = report.TopActive.Count == 0
+            ? "No activity data available."
+            : string.Join("\n", report.TopActive.Select((entry, index) =>
+            {
+                var roleName = guild.Roles.GetValueOrDefault(entry.RoleId)?.Name ?? entry.RoleId.ToString();
+                return $"**#{index + 1}** <@{entry.UserId}> ({roleName}) - Score {entry.CombinedScore:F1}, Msg {entry.Messages}, Voice {entry.VoiceMinutes}m";
+            }));
+
+        var underMinimumText = report.UnderMinimum.Count == 0
+            ? "No active violations."
+            : string.Join("\n", report.UnderMinimum.Select(entry =>
+            {
+                var roleName = guild.Roles.GetValueOrDefault(entry.RoleId)?.Name ?? entry.RoleId.ToString();
+                return $"<@{entry.UserId}> ({roleName}) - Msg {entry.Messages}, Voice {entry.VoiceMinutes}m, Score {entry.CombinedScore:F1}";
+            }));
+
+        var absencesText = report.LeaveEntries.Count == 0
+            ? "No active leaves."
+            : string.Join("\n", report.LeaveEntries.Select(entry =>
+            {
+                var end = entry.EndUtc ?? report.WeekEndUtc;
+                var duration = end > entry.StartUtc ? end - entry.StartUtc : TimeSpan.Zero;
+                return $"<@{entry.UserId}> - {entry.Reason} ({(int)duration.TotalDays}d {duration.Hours}h)";
+            }));
+
+        var warningsText = report.Warnings.Count == 0
+            ? "No new warnings."
+            : string.Join("\n", report.Warnings.Select(entry =>
+            {
+                var source = entry.WarningType == TeamWarningType.MissingMinimum ? "Auto" : "Manual";
+                return $"#{entry.Id} <@{entry.UserId}> ({source}) - {entry.Reason}";
+            }));
+
+        embed.AddField("Top-Aktive", TruncateForEmbed(topActiveText), false);
+        embed.AddField("Unter Mindestaktivität", TruncateForEmbed(underMinimumText), false);
+        embed.AddField("Aktive Abmeldungen", TruncateForEmbed(absencesText), false);
+        embed.AddField("Neue Warnungen", TruncateForEmbed(warningsText), false);
+
+        return embed;
+    }
+
+    private static string TruncateForEmbed(string value)
+    {
+        return value.Length <= 1024 ? value : value[..1021] + "...";
+    }
 }
 
 public sealed record TeamRankingEntry(
@@ -471,3 +829,38 @@ internal sealed record TeamContext(
     IReadOnlyDictionary<ulong, TeamActivityPolicy> PolicyByRoleId);
 
 internal sealed record TeamContextMember(ulong UserId, ulong PrimaryRoleId);
+
+public sealed record TeamWeeklyReportResult(
+    ulong GuildId,
+    DateTimeOffset WeekStartUtc,
+    DateTimeOffset WeekEndUtc,
+    IReadOnlyList<TeamActivityWeeklySnapshot> TopActive,
+    IReadOnlyList<TeamActivityWeeklySnapshot> UnderMinimum,
+    IReadOnlyList<TeamLeaveEntry> LeaveEntries,
+    IReadOnlyList<TeamWarning> Warnings,
+    IReadOnlyCollection<ulong> TrackedRoleIds);
+
+public sealed record TeamRoleProgress(
+    ulong RoleId,
+    int MinMessagesPerWeek,
+    int MinVoiceMinutesPerWeek,
+    int RemainingMessages,
+    int RemainingVoiceMinutes,
+    bool MeetsMessageMinimum,
+    bool MeetsVoiceMinimum);
+
+public sealed record TeamWarningSummary(
+    int WarningId,
+    string Reason,
+    TeamWarningType WarningType,
+    DateTimeOffset CreatedAtUtc,
+    bool IsResolved);
+
+public sealed record TeamUserWeeklyStatus(
+    ulong UserId,
+    int MessageCount,
+    int VoiceMinutes,
+    double Score,
+    int ActiveWarningCount,
+    IReadOnlyList<TeamWarningSummary> RecentWarnings,
+    IReadOnlyList<TeamRoleProgress> RoleProgress);
