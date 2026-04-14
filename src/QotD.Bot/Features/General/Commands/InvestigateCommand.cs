@@ -47,6 +47,17 @@ public sealed class InvestigateCommand
             .AddField("🆔 Subjekt-ID", user.Id.ToString(), true)
             .AddField("📅 Account erstellt", user.CreationTimestamp.ToString("d"), true);
 
+        var subjectAvatarUrl = member?.AvatarUrl;
+        if (string.IsNullOrWhiteSpace(subjectAvatarUrl))
+        {
+            subjectAvatarUrl = user.AvatarUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(subjectAvatarUrl))
+        {
+            embed.WithThumbnail(subjectAvatarUrl);
+        }
+
         if (member is not null)
         {
             embed.AddField("📥 Beigetreten", member.JoinedAt.ToString("d"), true)
