@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
 using QotD.Bot.Features.Logging.Models;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Logging.Services;
@@ -70,10 +71,9 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
                 var btnDisable = new DiscordButtonComponent(DiscordButtonStyle.Secondary, $"logsetup_disable_{selectedType}", "Disable / Unmap");
                 var btnBack = new DiscordButtonComponent(DiscordButtonStyle.Primary, "logsetup_back", "Back");
 
-                var channelEmbed = new DiscordEmbedBuilder()
-                    .WithTitle($"⚙️ Route {selectedType}")
+                var channelEmbed = CozyCoveUI.CreateBaseEmbed($"⚙️ Route {selectedType}")
                     .WithDescription($"Select the channel where **{selectedType}** logs should be sent.\nYou can map multiple types to the same channel.")
-                    .WithColor(DiscordColor.Blurple);
+                    .WithColor(CozyCoveUI.CozyPrimary);
 
                 await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
                     .AddEmbed(channelEmbed)
@@ -137,9 +137,8 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
             .Where(c => c.GuildId == guildId)
             .ToListAsync();
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("⚙️ Logging Configuration Panel")
-            .WithColor(DiscordColor.Blurple)
+        var embed = CozyCoveUI.CreateBaseEmbed("⚙️ Logging Configuration Panel")
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription("Select a Log Type below to assign or change its destination channel, or select multiple types to route them to the same channel.");
 
         var sb = new StringBuilder();

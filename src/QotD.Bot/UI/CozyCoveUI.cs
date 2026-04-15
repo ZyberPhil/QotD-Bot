@@ -13,8 +13,14 @@ public static class CozyCoveUI
     public const string COZY_ICON_URL = "https://cdn.discordapp.com/attachments/1399075190591193118/1481574657390936144/cozy-cove.gif?ex=69b3cf6c&is=69b27dec&hm=09ec233e821632e74a10cf5542edf9103ddb7a8075459ddbb1753ffcef156307&"; 
     public static readonly DiscordColor CozyBlack = new DiscordColor("#000000");
     public static readonly DiscordColor CozyDarkGray = new DiscordColor("#1A1A1A");
+    public static readonly DiscordColor CozyPrimary = new DiscordColor("#5865F2");
     public static readonly DiscordColor CozySuccessGreen = new DiscordColor("#57F287");
+    public static readonly DiscordColor CozyWarning = new DiscordColor("#FAA61A");
     public static readonly DiscordColor CozyErrorRed = new DiscordColor("#ED4245");
+    public static readonly DiscordColor CozyDanger = new DiscordColor("#ED4245");
+    public static readonly DiscordColor CozyInfoBlue = new DiscordColor("#0099FF");
+    public static readonly DiscordColor CozyGold = new DiscordColor("#FFD700");
+    public static readonly DiscordColor CozyNeutralGray = new DiscordColor("#808080");
 
     /// <summary>
     /// Erstellt eine Basis-Embed-Konfiguration im CozyCove-Stil.
@@ -41,6 +47,38 @@ public static class CozyCoveUI
     public static DiscordEmbedBuilder WithAnalyticalFooter(this DiscordEmbedBuilder builder, int latency)
     {
         return builder.WithFooter($"Latenz: {latency}ms | CozyCove System - Gerechtigkeit & Komfort", COZY_ICON_URL);
+    }
+
+    /// <summary>
+    /// Fügt einen einheitlichen Standard-Footer im CozyCove-Stil hinzu.
+    /// </summary>
+    public static DiscordEmbedBuilder WithStandardFooter(this DiscordEmbedBuilder builder, string? metadata = null)
+    {
+        var baseText = "CozyCove System";
+        if (!string.IsNullOrWhiteSpace(metadata))
+        {
+            baseText += $" | {metadata}";
+        }
+
+        return builder.WithFooter(baseText, COZY_ICON_URL);
+    }
+
+    /// <summary>
+    /// Erstellt ein standardisiertes Log-Embed mit Zeitstempel.
+    /// </summary>
+    public static DiscordEmbedBuilder CreateLogEmbed(
+        string title,
+        string description,
+        DiscordColor color,
+        string? footerMetadata = null,
+        DateTimeOffset? timestamp = null)
+    {
+        var builder = CreateBaseEmbed(title, description)
+            .WithColor(color)
+            .WithTimestamp(timestamp ?? DateTimeOffset.UtcNow)
+            .WithStandardFooter(footerMetadata);
+
+        return builder;
     }
 
     /// <summary>

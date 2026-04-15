@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
 using QotD.Bot.Features.Logging.Models;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.Logging.Services;
 
@@ -71,12 +72,12 @@ public sealed class DiscordLoggingEventHandler :
     {
         if (e.Guild == null || e.Message == null || e.Message.Author?.IsBot == true) return;
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("🗑️ Message Deleted")
-            .WithColor(DiscordColor.Red)
-            .WithDescription($"A message by <@{e.Message.Author?.Id}> was deleted in <#{e.Channel.Id}>.\n\n**Content:**\n{e.Message.Content}")
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"Author ID: {e.Message.Author?.Id} | Message ID: {e.Message.Id}");
+        var content = string.IsNullOrWhiteSpace(e.Message.Content) ? "*No text content*" : e.Message.Content;
+        var embed = CozyCoveUI.CreateLogEmbed(
+            $"{BotEmojis.Delete} Message Deleted",
+            $"A message by <@{e.Message.Author?.Id}> was deleted in <#{e.Channel.Id}>.\n\n**Content:**\n{content}",
+            CozyCoveUI.CozyDanger,
+            $"Author ID: {e.Message.Author?.Id} | Message ID: {e.Message.Id}");
 
         await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageDeleted);
     }
@@ -86,12 +87,13 @@ public sealed class DiscordLoggingEventHandler :
         if (e.Guild == null || e.MessageBefore == null || e.Message?.Author?.IsBot == true) return;
         if (e.MessageBefore.Content == e.Message?.Content) return; // Only log content changes
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("✏️ Message Edited")
-            .WithColor(DiscordColor.Orange)
-            .WithDescription($"[Jump to message]({e.Message?.JumpLink}) in <#{e.Channel.Id}>\n\n**Before:**\n{e.MessageBefore.Content}\n\n**After:**\n{e.Message?.Content}")
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"Author ID: {e.Message?.Author?.Id} | Message ID: {e.Message?.Id}");
+        var before = string.IsNullOrWhiteSpace(e.MessageBefore.Content) ? "*No text content*" : e.MessageBefore.Content;
+        var after = string.IsNullOrWhiteSpace(e.Message?.Content) ? "*No text content*" : e.Message.Content;
+        var embed = CozyCoveUI.CreateLogEmbed(
+            $"{BotEmojis.Edit} Message Edited",
+            $"[Jump to message]({e.Message?.JumpLink}) in <#{e.Channel.Id}>\n\n**Before:**\n{before}\n\n**After:**\n{after}",
+            CozyCoveUI.CozyWarning,
+            $"Author ID: {e.Message?.Author?.Id} | Message ID: {e.Message?.Id}");
 
         await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageUpdated);
     }
@@ -101,15 +103,14 @@ public sealed class DiscordLoggingEventHandler :
         var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
         var joinedAt = FormatDate(e.Member.JoinedAt);
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("👋 Member Joined")
-            .WithColor(DiscordColor.Green)
-            .WithDescription($"{e.Member.Mention} ist dem Server beigetreten.")
+        var embed = CozyCoveUI.CreateLogEmbed(
+                $"{BotEmojis.Join} Member Joined",
+                $"{e.Member.Mention} ist dem Server beigetreten.",
+                CozyCoveUI.CozySuccessGreen,
+                $"User ID: {e.Member.Id} | Join Event")
             .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
             .AddField("Beitrittsdatum", joinedAt, true)
-            .AddField("Rollen", roles)
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"User ID: {e.Member.Id} | Join Event");
+            .AddField("Rollen", roles);
 
         if (!string.IsNullOrWhiteSpace(e.Member.AvatarUrl))
         {
@@ -124,15 +125,14 @@ public sealed class DiscordLoggingEventHandler :
         var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
         var joinedAt = FormatDate(e.Member.JoinedAt);
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("🚪 Member Left")
-            .WithColor(DiscordColor.Red)
-            .WithDescription($"{e.Member.Mention} hat den Server verlassen.")
+        var embed = CozyCoveUI.CreateLogEmbed(
+                $"{BotEmojis.Leave} Member Left",
+                $"{e.Member.Mention} hat den Server verlassen.",
+                CozyCoveUI.CozyDanger,
+                $"User ID: {e.Member.Id} | Leave Event")
             .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
             .AddField("Beitrittsdatum", joinedAt, true)
-            .AddField("Rollen", roles)
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"User ID: {e.Member.Id} | Leave Event");
+            .AddField("Rollen", roles);
 
         if (!string.IsNullOrWhiteSpace(e.Member.AvatarUrl))
         {
@@ -154,24 +154,25 @@ public sealed class DiscordLoggingEventHandler :
 
         if (userId == 0 || guildId == 0) return;
 
-        var embed = new DiscordEmbedBuilder()
-            .WithColor(DiscordColor.Azure)
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"ID: {userId}");
+        var embed = CozyCoveUI.CreateLogEmbed(
+            $"{BotEmojis.Voice} Voice Update",
+            "",
+            CozyCoveUI.CozyInfoBlue,
+            $"User ID: {userId}");
 
         if (beforeChannelId == 0 && afterChannelId != 0)
         {
-            embed.WithTitle("🎤 Joined Voice Channel");
+            embed.WithTitle($"{BotEmojis.Voice} Joined Voice Channel");
             embed.WithDescription($"<@{userId}> joined voice channel <#{afterChannelId}>.");
         }
         else if (beforeChannelId != 0 && afterChannelId == 0)
         {
-            embed.WithTitle("🎤 Left Voice Channel");
+            embed.WithTitle($"{BotEmojis.Voice} Left Voice Channel");
             embed.WithDescription($"<@{userId}> left voice channel <#{beforeChannelId}>.");
         }
         else if (beforeChannelId != 0 && afterChannelId != 0)
         {
-            embed.WithTitle("🎤 Switched Voice Channel");
+            embed.WithTitle($"{BotEmojis.Voice} Switched Voice Channel");
             embed.WithDescription($"<@{userId}> moved from <#{beforeChannelId}> to <#{afterChannelId}>.");
         }
 

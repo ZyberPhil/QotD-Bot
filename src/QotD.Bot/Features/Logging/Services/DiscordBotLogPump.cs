@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using QotD.Bot.Data;
 using QotD.Bot.Features.Logging.Models;
+using QotD.Bot.UI;
 using Serilog.Events;
 
 namespace QotD.Bot.Features.Logging.Services;
@@ -74,8 +75,10 @@ public sealed class DiscordBotLogPump(
 
     private static DiscordEmbed BuildEmbed(DiscordBotLogRelay.BotLogEntry entry, LogType type)
     {
-        var color = type == LogType.BotError ? DiscordColor.Red : DiscordColor.Blurple;
-        var title = type == LogType.BotError ? "Bot Error" : "Bot Action";
+        var color = type == LogType.BotError ? CozyCoveUI.CozyDanger : CozyCoveUI.CozyPrimary;
+        var title = type == LogType.BotError
+            ? $"{BotEmojis.Warning} Bot Error"
+            : "Bot Action";
 
         var message = entry.Message;
         if (message.Length > 1800)
@@ -83,10 +86,8 @@ public sealed class DiscordBotLogPump(
             message = message[..1800] + "...";
         }
 
-        return new DiscordEmbedBuilder()
-            .WithTitle(title)
+        return CozyCoveUI.CreateBaseEmbed(title, message)
             .WithColor(color)
-            .WithDescription(message)
             .AddField("Source", entry.Source)
             .WithTimestamp(entry.Timestamp)
             .Build();

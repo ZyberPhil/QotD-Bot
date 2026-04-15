@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Features.Logging.Models;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Logging.Commands;
@@ -34,9 +35,8 @@ public sealed class LogSetupCommand
             .Where(c => c.GuildId == ctx.Guild!.Id)
             .ToListAsync();
 
-        var embed = new DiscordEmbedBuilder()
-            .WithTitle("⚙️ Logging Configuration Panel")
-            .WithColor(DiscordColor.Blurple)
+        var embed = CozyCoveUI.CreateBaseEmbed("⚙️ Logging Configuration Panel")
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription("Select a Log Type below to assign or change its destination channel, or select multiple types to route them to the same channel.");
 
         var sb = new StringBuilder();
