@@ -25,26 +25,26 @@ public sealed class TeamSetupCommand
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Dynamic List Setup", "📋")
             .WithColor(CozyCoveUI.CozyPrimary)
-            .WithDescription("Configure the dynamic team list message. The bot will automatically update the message in the selected channel whenever members gain or lose the tracked roles.");
+            .WithDescription("Configure the dynamic team list message. The bot automatically updates the message in the selected channel when tracked roles change.");
 
         var sb = new StringBuilder();
-        sb.AppendLine($"**Target Channel:** {(config?.ChannelId > 0 ? $"<#{config.ChannelId}>" : "❌ Not Set")}");
+        sb.AppendLine($"**Target Channel:** {(config?.ChannelId > 0 ? $"<#{config.ChannelId}>" : "❌ Not configured")}");
         
         var rolesStr = config?.TrackedRoles?.Length > 0 
             ? string.Join(", ", config.TrackedRoles.Select(r => $"<@&{r}>")) 
-            : "❌ None";
+            : "❌ Not configured";
         sb.AppendLine($"**Tracked Roles:** {rolesStr}");
         
         sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default (📋 Team List)"}");
         
         var templateDisplay = string.IsNullOrWhiteSpace(config?.CustomTemplate) 
-            ? "Default Template" 
-            : "Custom Template Active";
+            ? "Using default template" 
+            : "Custom template enabled";
         sb.AppendLine($"**Template:** {templateDisplay}");
         sb.AppendLine("**Template Tokens:** `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`");
-        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
+        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not configured" : "✅ Configured")}");
         
-        embed.AddField("Current Configuration", sb.ToString());
+        embed.AddField("Current Setup", sb.ToString());
 
         var channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
         var roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", minOptions: 1, maxOptions: 10);

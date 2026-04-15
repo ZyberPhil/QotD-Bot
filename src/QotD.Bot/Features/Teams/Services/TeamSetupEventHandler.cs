@@ -113,13 +113,13 @@ public sealed class TeamSetupEventHandler :
             DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
             embed.WithFeatureTitle("Teams", "List Customization", "📋");
             embed.WithColor(CozyCoveUI.CozyPrimary);
-            embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
+            embed.WithDescription("Edit the team list header, body, and footer.");
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"**Header (Title):** {config?.CustomTitle ?? "Default (📋 Team List)"}");
-            sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
-            sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
-            embed.AddField("Current Text Settings", sb.ToString());
+            sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Using default template" : "Custom template enabled")}");
+            sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not configured"}");
+            embed.AddField("Text Configuration", sb.ToString());
             embed.AddField("Template Tokens",
                 "Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`\n" +
                 "Legacy: `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`",
@@ -155,10 +155,10 @@ public sealed class TeamSetupEventHandler :
         var guildId = e.Interaction.GuildId!.Value;
 
         DiscordInteractionResponseBuilder prompt = new DiscordInteractionResponseBuilder();
-        var promptText = $"Please type the new **{field}** now. (Type `cancel` to stop)";
+        var promptText = $"Enter the new **{field}** value. Type `cancel` to stop.";
         if (field == "body")
         {
-            promptText += "\nTokens: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}` (legacy still works).";
+            promptText += "\nPreferred tokens: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`. Legacy placeholders still work.";
         }
 
         prompt.WithContent(promptText);
@@ -201,13 +201,13 @@ public sealed class TeamSetupEventHandler :
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
         embed.WithFeatureTitle("Teams", "List Customization", "📋");
         embed.WithColor(CozyCoveUI.CozyPrimary);
-        embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
+        embed.WithDescription("Edit the team list header, body, and footer.");
 
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"**Header (Title):** {config?.CustomTitle ?? "Default (📋 Team List)"}");
-        sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
-        sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
-        embed.AddField("Current Text Settings", sb.ToString());
+        sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Using default template" : "Custom template enabled")}");
+        sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not configured"}");
+        embed.AddField("Text Configuration", sb.ToString());
         embed.AddField("Template Tokens",
             "Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`\n" +
             "Legacy: `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`",
@@ -233,17 +233,17 @@ public sealed class TeamSetupEventHandler :
         embed.WithDescription("Configure the dynamic team list message.");
 
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"**Target Channel:** {(config?.ChannelId > 0 ? $"<#{config.ChannelId}>" : "❌ Not Set")}");
+        sb.AppendLine($"**Target Channel:** {(config?.ChannelId > 0 ? $"<#{config.ChannelId}>" : "❌ Not configured")}");
         
         var rolesStr = config?.TrackedRoles?.Length > 0 
             ? string.Join(", ", config.TrackedRoles.Select(r => $"<@&{r}>")) 
-            : "❌ None";
+            : "❌ Not configured";
         sb.AppendLine($"**Tracked Roles:** {rolesStr}");
         sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default"}");
-        sb.AppendLine($"**Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
-        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
+        sb.AppendLine($"**Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Using default template" : "Custom template enabled")}");
+        sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not configured" : "✅ Configured")}");
         sb.AppendLine("**Template Tokens:** `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`");
-        embed.AddField("Current Configuration", sb.ToString());
+        embed.AddField("Current Setup", sb.ToString());
 
         DiscordChannelSelectComponent channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");
         DiscordRoleSelectComponent roleSelect = new DiscordRoleSelectComponent("teamsetup_roles", "Select roles to track...", false, 1, 10);

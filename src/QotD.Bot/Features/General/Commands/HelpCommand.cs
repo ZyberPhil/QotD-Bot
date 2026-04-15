@@ -12,8 +12,8 @@ public sealed class HelpCommand
     public async ValueTask ExecuteAsync(CommandContext ctx)
     {
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("📖 CozyCove Help Dashboard")
-            .WithDescription("Welcome to the CozyCove Help System!\n\nPlease use the dropdown menu below to select a specific category and view its commands.")
+            .WithFeatureTitle("Help", "Dashboard", "📖")
+            .WithDescription("Use the dropdown menu below to switch categories and review the available commands.")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithFeatureFooter("Help", "v1.1.0")
             .WithTimestamp(DateTimeOffset.UtcNow);

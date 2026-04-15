@@ -137,12 +137,13 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
             .Where(c => c.GuildId == guildId)
             .ToListAsync();
 
-        var embed = CozyCoveUI.CreateBaseEmbed("⚙️ Logging Configuration Panel")
+        var embed = CozyCoveUI.CreateBaseEmbed()
+            .WithFeatureTitle("Logging", "Configuration Panel", "⚙️")
             .WithColor(CozyCoveUI.CozyPrimary)
-            .WithDescription("Select a Log Type below to assign or change its destination channel, or select multiple types to route them to the same channel.");
+            .WithDescription("Choose one or more log types below to assign or change their destination channel.");
 
         var sb = new StringBuilder();
-        sb.AppendLine("Current Configuration:");
+        sb.AppendLine("Current Routing:");
         foreach (var type in ConfigurableLogTypes)
         {
             var cfg = configs.FirstOrDefault(c => c.LogType == type);
@@ -161,7 +162,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
             .Select(t => new DiscordSelectComponentOption(t.ToString(), t.ToString(), $"Configure destination for {t} logs"))
             .ToList();
 
-        var typeSelect = new DiscordSelectComponent("logsetup_typeselect", "Select a Log Type to edit...", typeOptions);
+        var typeSelect = new DiscordSelectComponent("logsetup_typeselect", "Select a log type...", typeOptions);
         var btnClose = new DiscordButtonComponent(DiscordButtonStyle.Danger, "logsetup_close", "Close Panel");
 
         await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
