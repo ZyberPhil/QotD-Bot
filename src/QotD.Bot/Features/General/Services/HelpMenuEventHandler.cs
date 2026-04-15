@@ -28,13 +28,13 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
         switch (selectedCategory)
         {
             case "general":
-                embed.WithTitle("🛠️ General Commands");
+                embed.WithFeatureTitle("General", "Commands", "🛠️");
                 sb.AppendLine("> **`/help`** - Shows this interactive help dashboard.");
                 sb.AppendLine("> **`/investigate <user>`** - Starts an analysis of the specified subject.");
                 break;
 
             case "minigames":
-                embed.WithTitle("🎮 MiniGames Commands");
+                embed.WithFeatureTitle("MiniGames", "Commands", "🎮");
                 sb.AppendLine("> **`/blackjack [bet]`** - Starts a round of Blackjack.");
                 sb.AppendLine("> **`/tower [bet]`** - Starts a Tower run.");
                 sb.AppendLine("> **`/counting setup <#channel>`** - Sets up the counting channel.");
@@ -44,7 +44,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 break;
 
             case "leveling":
-                embed.WithTitle("📈 Leveling Commands");
+                embed.WithFeatureTitle("Leveling", "Commands", "📈");
                 sb.AppendLine("> **`/rank [user]`** - Show level, XP and rank for a user.");
                 sb.AppendLine("> **`/leaderboard`** - Show server leveling top list.");
                 sb.AppendLine("> **`/levelingsetup setchannel <#channel>`** - Set level-up notification channel.");
@@ -53,7 +53,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 break;
 
             case "teams":
-                embed.WithTitle("👥 Team Commands");
+                embed.WithFeatureTitle("Teams", "Commands", "👥");
                 sb.AppendLine("> **`/teamsetup`** - Interactive team role tracking setup panel.");
                 sb.AppendLine("> **`/team me`** - Shows your current weekly progress and warning status.");
                 sb.AppendLine("> **`/team ranking`** - Weekly team activity ranking.");
@@ -75,14 +75,14 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 break;
 
             case "birthdays":
-                embed.WithTitle("🎂 Birthday Commands");
+                embed.WithFeatureTitle("Birthdays", "Commands", "🎂");
                 sb.AppendLine("> **`/birthday set <day> <month>`** - Set your birthday reminder.");
                 sb.AppendLine("> **`/birthday remove`** - Remove your birthday reminder.");
                 sb.AppendLine("> **`/birthdaysetup <#channel> <@role>`** - Configure birthday announcements (Admin).");
                 break;
 
             case "voice":
-                embed.WithTitle("🔊 Temp Voice Commands");
+                embed.WithFeatureTitle("Temp Voice", "Commands", "🔊");
                 sb.AppendLine("> **`/voice setup <trigger> [category]`** - Configure join-to-create temp voice (Admin).");
                 sb.AppendLine("> **`/voice rename <name>`** - Rename your owned temp voice channel.");
                 sb.AppendLine("> **`/voice limit <0-99>`** - Set user limit for your temp channel.");
@@ -91,13 +91,13 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 break;
 
             case "economy":
-                embed.WithTitle("💰 Economy Commands");
+                embed.WithFeatureTitle("Economy", "Commands", "💰");
                 sb.AppendLine("> Economy is used by game commands like `/blackjack` and `/tower`.");
                 sb.AppendLine("> There are currently no direct economy slash commands in this bot.");
                 break;
 
             case "qotd":
-                embed.WithTitle("📅 Question of the Day");
+                embed.WithFeatureTitle("Question of the Day", "Commands", "📅");
                 sb.AppendLine("> **`/qotd list`** - See upcoming scheduled questions.");
                 sb.AppendLine("> **`/qotd add <date> <text>`** - Schedule a new question.");
                 sb.AppendLine("> **`/qotd edit <id> [text] [date]`** - Modify an existing question.");
@@ -112,7 +112,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 break;
 
             case "admin":
-                embed.WithTitle("⚙️ Configuration and Admin");
+                embed.WithFeatureTitle("Administration", "Configuration", "⚙️");
                 sb.AppendLine("> **`/logsetup`** - Interactive logging configuration panel.");
                 sb.AppendLine("> **`/teamsetup`** - Team roles setup panel.");
                 sb.AppendLine("> **`/team me`** - Your weekly team status.");

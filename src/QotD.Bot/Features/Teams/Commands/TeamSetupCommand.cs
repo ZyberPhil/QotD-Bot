@@ -23,7 +23,7 @@ public sealed class TeamSetupCommand
         var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == ctx.Guild!.Id);
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("📋 Dynamic Team List Setup")
+            .WithFeatureTitle("Teams", "Dynamic List Setup", "📋")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription("Configure the dynamic team list message. The bot will automatically update the message in the selected channel whenever members gain or lose the tracked roles.");
 

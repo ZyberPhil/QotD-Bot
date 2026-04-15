@@ -111,7 +111,7 @@ public sealed class TeamSetupEventHandler :
             var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
 
             DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
-            embed.WithTitle("📋 Team List Customization");
+            embed.WithFeatureTitle("Teams", "List Customization", "📋");
             embed.WithColor(CozyCoveUI.CozyPrimary);
             embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
 
@@ -199,7 +199,7 @@ public sealed class TeamSetupEventHandler :
     private async Task UpdateCustomTextPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig config)
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
-        embed.WithTitle("📋 Team List Customization");
+        embed.WithFeatureTitle("Teams", "List Customization", "📋");
         embed.WithColor(CozyCoveUI.CozyPrimary);
         embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
 
@@ -228,7 +228,7 @@ public sealed class TeamSetupEventHandler :
     private async Task RefreshSetupPanelAsync(ComponentInteractionCreatedEventArgs e, TeamListConfig? config)
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
-        embed.WithTitle("📋 Dynamic Team List Setup");
+        embed.WithFeatureTitle("Teams", "Dynamic List Setup", "📋");
         embed.WithColor(CozyCoveUI.CozyPrimary);
         embed.WithDescription("Configure the dynamic team list message.");
 

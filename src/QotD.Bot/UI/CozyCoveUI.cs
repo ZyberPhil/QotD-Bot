@@ -78,6 +78,18 @@ public static class CozyCoveUI
     }
 
     /// <summary>
+    /// Fügt einen einheitlichen Feature-Titel hinzu.
+    /// </summary>
+    public static DiscordEmbedBuilder WithFeatureTitle(this DiscordEmbedBuilder builder, string feature, string headline, string? emoji = null)
+    {
+        var title = string.IsNullOrWhiteSpace(emoji)
+            ? $"{feature} - {headline}"
+            : $"{emoji} {feature} - {headline}";
+
+        return builder.WithTitle(title);
+    }
+
+    /// <summary>
     /// Erstellt ein standardisiertes Log-Embed mit Zeitstempel.
     /// </summary>
     public static DiscordEmbedBuilder CreateLogEmbed(
