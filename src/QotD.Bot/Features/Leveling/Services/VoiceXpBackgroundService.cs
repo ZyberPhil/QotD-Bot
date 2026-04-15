@@ -143,11 +143,23 @@ public sealed class VoiceXpBackgroundService(
             return;
         }
 
+        var bannerUrl = await levelService.GetLevelUpBannerUrlAsync(guild.Id);
+
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
             .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"{member.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
+
+        if (!string.IsNullOrWhiteSpace(member.AvatarUrl))
+        {
+            embed.WithThumbnail(member.AvatarUrl);
+        }
+
+        if (!string.IsNullOrWhiteSpace(bannerUrl))
+        {
+            embed.WithImageUrl(bannerUrl);
+        }
 
         await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }

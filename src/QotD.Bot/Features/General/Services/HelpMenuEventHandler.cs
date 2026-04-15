@@ -49,6 +49,8 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 sb.AppendLine("> **`/leaderboard`** - Show server leveling top list.");
                 sb.AppendLine("> **`/levelingsetup setchannel <#channel>`** - Set level-up notification channel.");
                 sb.AppendLine("> **`/levelingsetup disablenotifications`** - Disable level-up notifications.");
+                sb.AppendLine("> **`/levelingsetup setbanner <url>`** - Set banner image for level-up embeds.");
+                sb.AppendLine("> **`/levelingsetup clearbanner`** - Remove level-up embed banner.");
                 sb.AppendLine("> **`/levelingsetup voiceconfig <minUsers> [allowMuted]`** - Configure voice XP rules.");
                 break;
 

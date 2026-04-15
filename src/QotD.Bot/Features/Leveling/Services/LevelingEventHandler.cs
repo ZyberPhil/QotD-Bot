@@ -43,11 +43,23 @@ public sealed class LevelingEventHandler : IEventHandler<MessageCreatedEventArgs
             return;
         }
 
+        var bannerUrl = await _levelService.GetLevelUpBannerUrlAsync(e.Guild.Id);
+
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
             .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"{e.Author.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
+
+        if (!string.IsNullOrWhiteSpace(e.Author.AvatarUrl))
+        {
+            embed.WithThumbnail(e.Author.AvatarUrl);
+        }
+
+        if (!string.IsNullOrWhiteSpace(bannerUrl))
+        {
+            embed.WithImageUrl(bannerUrl);
+        }
 
         await channel.SendMessageAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }

@@ -312,6 +312,55 @@ public sealed class LevelService
         await db.SaveChangesAsync();
     }
 
+    public async Task<string?> GetLevelUpBannerUrlAsync(ulong guildId)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var config = await db.LevelingConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue);
+
+        return string.IsNullOrWhiteSpace(config?.LevelUpBannerUrl)
+            ? null
+            : config.LevelUpBannerUrl;
+    }
+
+    public async Task SetLevelUpBannerUrlAsync(ulong guildId, string? bannerUrl)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LevelDatabaseContext>();
+
+        var guildIdValue = checked((long)guildId);
+        var normalizedBannerUrl = string.IsNullOrWhiteSpace(bannerUrl)
+            ? null
+            : bannerUrl.Trim();
+
+        var config = await db.LevelingConfigs
+            .FirstOrDefaultAsync(x => x.GuildId == guildIdValue);
+
+        if (config is null)
+        {
+            config = new LevelingConfig
+            {
+                GuildId = guildIdValue,
+                LevelUpChannelId = 0,
+                IsEnabled = false,
+                LevelUpBannerUrl = normalizedBannerUrl,
+                VoiceMinActiveUsers = DefaultVoiceMinActiveUsers,
+                VoiceAllowSelfMutedOrDeafened = DefaultVoiceAllowSelfMutedOrDeafened
+            };
+            db.LevelingConfigs.Add(config);
+        }
+        else
+        {
+            config.LevelUpBannerUrl = normalizedBannerUrl;
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     public async Task DisableLevelUpNotificationsAsync(ulong guildId)
     {
         using var scope = _scopeFactory.CreateScope();

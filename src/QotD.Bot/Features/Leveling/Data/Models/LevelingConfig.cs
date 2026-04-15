@@ -17,6 +17,12 @@ public sealed class LevelingConfig
     /// </summary>
     public long LevelUpChannelId { get; set; }
 
+    /// <summary>
+    /// Optional banner image URL used in level-up embeds.
+    /// </summary>
+    [MaxLength(2048)]
+    public string? LevelUpBannerUrl { get; set; }
+
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>

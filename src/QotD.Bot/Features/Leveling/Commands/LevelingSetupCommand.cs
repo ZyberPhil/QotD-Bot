@@ -95,4 +95,56 @@ public class LevelingSetupCommand
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }
+
+    [Command("setbanner")]
+    [Description("Setzt ein Banner-Bild für Level-Up-Embeds")]
+    public async ValueTask SetLevelUpBannerAsync(
+        CommandContext ctx,
+        [Description("Bild-URL (http/https)")] string bannerUrl)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        if (!Uri.TryCreate(bannerUrl, UriKind.Absolute, out var parsedUri) ||
+            (parsedUri.Scheme != Uri.UriSchemeHttp && parsedUri.Scheme != Uri.UriSchemeHttps))
+        {
+            await ctx.RespondAsync("Bitte gib eine gueltige http/https Bild-URL an.");
+            return;
+        }
+
+        await _levelService.SetLevelUpBannerUrlAsync(ctx.Guild.Id, parsedUri.ToString());
+
+        var embed = new DiscordEmbedBuilder()
+            .WithTitle("✅ Level-Up-Banner gesetzt")
+            .WithColor(SectorUI.SectorSuccessGreen)
+            .WithDescription("Das Banner wird jetzt in Level-Up-Embeds angezeigt.")
+            .WithImageUrl(parsedUri.ToString())
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
+
+    [Command("clearbanner")]
+    [Description("Entfernt das konfigurierte Banner aus Level-Up-Embeds")]
+    public async ValueTask ClearLevelUpBannerAsync(CommandContext ctx)
+    {
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server genutzt werden.");
+            return;
+        }
+
+        await _levelService.SetLevelUpBannerUrlAsync(ctx.Guild.Id, null);
+
+        var embed = new DiscordEmbedBuilder()
+            .WithTitle("✅ Level-Up-Banner entfernt")
+            .WithColor(SectorUI.SectorSuccessGreen)
+            .WithDescription("Level-Up-Embeds werden ohne Banner versendet.")
+            .WithTimestamp(DateTimeOffset.UtcNow);
+
+        await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
+    }
 }

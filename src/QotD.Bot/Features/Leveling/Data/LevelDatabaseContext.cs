@@ -37,6 +37,7 @@ public sealed class LevelDatabaseContext : DbContext
 
             entity.Property(x => x.GuildId).IsRequired();
             entity.Property(x => x.LevelUpChannelId).HasDefaultValue(0);
+            entity.Property(x => x.LevelUpBannerUrl).HasMaxLength(2048);
             entity.Property(x => x.IsEnabled).HasDefaultValue(true);
             entity.Property(x => x.VoiceMinActiveUsers).HasDefaultValue(2);
             entity.Property(x => x.VoiceAllowSelfMutedOrDeafened).HasDefaultValue(false);
