@@ -12,6 +12,7 @@ public static class SectorUI
     // "🔷" Icon - Muss eine valide HTTP/HTTPS URL sein für Discord
     public const string SECTOR_ICON_URL = "https://cdn.discordapp.com/attachments/1483009140635734028/1493944119645573271/sector_pb.png?ex=69e0cf62&is=69df7de2&hm=ec4a8891b8e72900844a5200932d541850b067e9a8ed8c8bd4ce9f68b6bf0313&"; 
     public static readonly DiscordColor SectorBlack = new DiscordColor("#000000");
+    public static readonly DiscordColor SectorWhite = new DiscordColor("#FFFFFF");
     public static readonly DiscordColor SectorDarkGray = new DiscordColor("#1A1A1A");
     public static readonly DiscordColor SectorPrimary = new DiscordColor("#5865F2");
     public static readonly DiscordColor SectorSuccessGreen = new DiscordColor("#57F287");
@@ -28,7 +29,7 @@ public static class SectorUI
     public static DiscordEmbedBuilder CreateBaseEmbed(string? title = null, string? description = null)
     {
         var builder = new DiscordEmbedBuilder()
-            .WithColor(SectorBlack)
+            .WithColor(SectorWhite)
             .WithAuthor("Sector 0", null, SECTOR_ICON_URL)
             .WithThumbnail(SECTOR_ICON_URL);
 
