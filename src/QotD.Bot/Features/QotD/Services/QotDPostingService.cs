@@ -42,7 +42,7 @@ public sealed class QotDPostingService(IServiceProvider serviceProvider, ILogger
             embedBuilder = CozyCoveUI.CreateBaseEmbed(title, questionText);
         }
 
-        embedBuilder.WithFooter($"{date:dddd, dd. MMMM yyyy}", CozyCoveUI.COZY_ICON_URL);
+        embedBuilder.WithFeatureFooter("QotD", date.ToString("dddd, dd. MMMM yyyy"));
 
         var message = await channel.SendMessageAsync(
             new DiscordMessageBuilder().AddEmbed(embedBuilder.Build()));

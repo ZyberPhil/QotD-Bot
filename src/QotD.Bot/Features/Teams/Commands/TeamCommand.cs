@@ -103,7 +103,7 @@ public sealed class TeamCommand
             .WithTitle("Team Ranking (aktuelle Woche)")
             .WithColor(CozyCoveUI.CozyGold)
             .WithDescription(string.Join("\n", lines))
-            .WithFooter("Score = Nachrichten + (Voice-Minuten / 10)")
+            .WithFeatureFooter("Teams", "Score = Nachrichten + (Voice-Minuten / 10)")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
@@ -489,7 +489,7 @@ public sealed class TeamCommand
                 .WithTitle($"Notizen zu Warnung #{warningId}")
                 .WithColor(CozyCoveUI.CozyWarning)
                 .WithDescription(string.Join("\n\n", lines))
-                .WithFooter(warning.IsResolved ? "Status: gelöst" : "Status: offen")
+                .WithFeatureFooter("Teams", warning.IsResolved ? "Status: gelöst" : "Status: offen")
                 .WithTimestamp(DateTimeOffset.UtcNow)));
         }
 

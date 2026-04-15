@@ -64,6 +64,20 @@ public static class CozyCoveUI
     }
 
     /// <summary>
+    /// Fügt einen standardisierten Feature-Footer hinzu.
+    /// </summary>
+    public static DiscordEmbedBuilder WithFeatureFooter(this DiscordEmbedBuilder builder, string feature, string? metadata = null)
+    {
+        var footer = $"CozyCove System | {feature}";
+        if (!string.IsNullOrWhiteSpace(metadata))
+        {
+            footer += $" | {metadata}";
+        }
+
+        return builder.WithFooter(footer, COZY_ICON_URL);
+    }
+
+    /// <summary>
     /// Erstellt ein standardisiertes Log-Embed mit Zeitstempel.
     /// </summary>
     public static DiscordEmbedBuilder CreateLogEmbed(

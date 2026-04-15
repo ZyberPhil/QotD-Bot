@@ -15,7 +15,7 @@ public sealed class HelpCommand
             .WithTitle("📖 CozyCove Help Dashboard")
             .WithDescription("Welcome to the CozyCove Help System!\n\nPlease use the dropdown menu below to select a specific category and view its commands.")
             .WithColor(CozyCoveUI.CozyPrimary)
-            .WithFooter("CozyCove System v1.1.0")
+            .WithFeatureFooter("Help", "v1.1.0")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder()

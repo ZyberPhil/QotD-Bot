@@ -126,7 +126,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
         }
 
         embed.WithDescription(sb.ToString());
-        embed.WithFooter("CozyCove System | Select a category below");
+        embed.WithFeatureFooter("Help", "Select a category below");
 
         await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
             .AddEmbed(embed)

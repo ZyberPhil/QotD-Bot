@@ -763,7 +763,7 @@ public sealed class TeamActivityService(
             .WithTitle($"Weekly Team Report - {guild.Name}")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter($"Week starting {report.WeekStartUtc:yyyy-MM-dd}");
+            .WithFeatureFooter("Teams", $"Week starting {report.WeekStartUtc:yyyy-MM-dd}");
 
         var topActiveText = report.TopActive.Count == 0
             ? "No activity data available."

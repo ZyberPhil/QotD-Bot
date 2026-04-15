@@ -64,7 +64,7 @@ public sealed class QotDCommand
         }
 
         var embed = CozyCoveUI.CreateBaseEmbed($"📅 Upcoming Questions ({questions.Count})", sb.ToString())
-            .WithFooter("Showing next 25 unposted questions")
+            .WithFeatureFooter("QotD", "Showing next 25 unposted questions")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
