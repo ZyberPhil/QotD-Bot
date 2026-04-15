@@ -45,7 +45,7 @@ public sealed class LevelingEventHandler : IEventHandler<MessageCreatedEventArgs
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"{e.Author.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

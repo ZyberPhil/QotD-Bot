@@ -286,7 +286,7 @@ public sealed class TempVoiceEventHandler :
         var embed = new DiscordEmbedBuilder()
             .WithTitle("🎛️ Voice Channel Control Panel")
             .WithDescription($"Owner: {owner.Mention}\n\nUse the buttons below to manage your channel.")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .Build();
 
         var renameBtn = new DiscordButtonComponent(DiscordButtonStyle.Primary, "tv_rename", "✏️ Rename");

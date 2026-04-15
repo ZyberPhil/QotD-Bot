@@ -75,7 +75,7 @@ public sealed class DiscordBotLogPump(
 
     private static DiscordEmbed BuildEmbed(DiscordBotLogRelay.BotLogEntry entry, LogType type)
     {
-        var color = type == LogType.BotError ? CozyCoveUI.CozyDanger : CozyCoveUI.CozyPrimary;
+        var color = type == LogType.BotError ? SectorUI.SectorDanger : SectorUI.SectorPrimary;
         var title = type == LogType.BotError
             ? $"{BotEmojis.Warning} Bot Error"
             : "Bot Action";
@@ -86,7 +86,7 @@ public sealed class DiscordBotLogPump(
             message = message[..1800] + "...";
         }
 
-        return CozyCoveUI.CreateBaseEmbed(title, message)
+        return SectorUI.CreateBaseEmbed(title, message)
             .WithColor(color)
             .AddField("Source", entry.Source)
             .WithTimestamp(entry.Timestamp)

@@ -20,7 +20,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
         var selectedCategory = e.Interaction.Data.Values[0];
 
         var embed = new DiscordEmbedBuilder()
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         var sb = new StringBuilder();

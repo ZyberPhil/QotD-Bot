@@ -742,7 +742,7 @@ public sealed class TeamActivityService(
             var dm = await user.CreateDmChannelAsync();
             var embed = new DiscordEmbedBuilder()
                 .WithFeatureTitle("Teams", "Aktivitätsminimum nicht erreicht", "⚠️")
-                .WithColor(CozyCoveUI.CozyWarning)
+                .WithColor(SectorUI.SectorWarning)
                 .WithDescription(
                     $"Server: **{guild.Name}**\n" +
                     $"Woche ab: **{weekStart:yyyy-MM-dd}**\n" +
@@ -761,7 +761,7 @@ public sealed class TeamActivityService(
     {
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", $"Wochenreport - {guild.Name}", "👥")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithTimestamp(DateTimeOffset.UtcNow)
             .WithFeatureFooter("Teams", $"Week starting {report.WeekStartUtc:yyyy-MM-dd}");
 

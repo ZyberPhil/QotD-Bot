@@ -14,7 +14,7 @@ public static class TowerUI
 
         var (towerText, statusText) = GenerateTowerDisplay(game);
 
-        var embed = CozyCoveUI.CreateBaseEmbed($"🏰 Tower Game | User: <@{game.UserId}>", towerText)
+        var embed = SectorUI.CreateBaseEmbed($"🏰 Tower Game | User: <@{game.UserId}>", towerText)
             .AddField("Aktueller Gewinn", $"{game.CurrentWin} Coins", true)
             .AddField("Status", statusText, true);
 

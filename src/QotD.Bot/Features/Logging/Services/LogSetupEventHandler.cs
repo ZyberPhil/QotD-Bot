@@ -71,9 +71,9 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
                 var btnDisable = new DiscordButtonComponent(DiscordButtonStyle.Secondary, $"logsetup_disable_{selectedType}", "Disable / Unmap");
                 var btnBack = new DiscordButtonComponent(DiscordButtonStyle.Primary, "logsetup_back", "Back");
 
-                var channelEmbed = CozyCoveUI.CreateBaseEmbed($"⚙️ Route {selectedType}")
+                var channelEmbed = SectorUI.CreateBaseEmbed($"⚙️ Route {selectedType}")
                     .WithDescription($"Select the channel where **{selectedType}** logs should be sent.\nYou can map multiple types to the same channel.")
-                    .WithColor(CozyCoveUI.CozyPrimary);
+                    .WithColor(SectorUI.SectorPrimary);
 
                 await e.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
                     .AddEmbed(channelEmbed)
@@ -137,9 +137,9 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
             .Where(c => c.GuildId == guildId)
             .ToListAsync();
 
-        var embed = CozyCoveUI.CreateBaseEmbed()
+        var embed = SectorUI.CreateBaseEmbed()
             .WithFeatureTitle("Logging", "Configuration Panel", "⚙️")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription("Choose one or more log types below to assign or change their destination channel.");
 
         var sb = new StringBuilder();

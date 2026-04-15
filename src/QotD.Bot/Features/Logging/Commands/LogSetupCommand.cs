@@ -35,9 +35,9 @@ public sealed class LogSetupCommand
             .Where(c => c.GuildId == ctx.Guild!.Id)
             .ToListAsync();
 
-        var embed = CozyCoveUI.CreateBaseEmbed()
+        var embed = SectorUI.CreateBaseEmbed()
             .WithFeatureTitle("Logging", "Configuration Panel", "⚙️")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription("Choose one or more log types below to assign or change their destination channel.");
 
         var sb = new StringBuilder();

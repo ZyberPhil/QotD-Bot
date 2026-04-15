@@ -57,7 +57,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", $"Status - {ctx.User.Username}", "👥")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription(
                 $"Nachrichten diese Woche: **{status.MessageCount}**\n" +
                 $"Voice-Minuten diese Woche: **{status.VoiceMinutes}**\n" +
@@ -101,7 +101,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Ranking (aktuelle Woche)", "👥")
-            .WithColor(CozyCoveUI.CozyGold)
+            .WithColor(SectorUI.SectorGold)
             .WithDescription(string.Join("\n", lines))
             .WithFeatureFooter("Teams", "Score = Nachrichten + (Voice-Minuten / 10)")
             .WithTimestamp(DateTimeOffset.UtcNow);
@@ -132,7 +132,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Mindestaktivität gesetzt", "👥")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription(
                 $"Rolle: {role.Mention}\n" +
                 $"Nachrichten/Woche: **{policy.MinMessagesPerWeek}**\n" +
@@ -156,7 +156,7 @@ public sealed class TeamCommand
         var config = await _teamActivityService.SetWeeklyReportChannelAsync(ctx.Guild.Id, channel.Id);
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Wöchentlicher Teamreport aktiviert", "👥")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"Berichte werden jetzt in {channel.Mention} gepostet.\nNächster Report läuft automatisch am Wochenwechsel.")
             .WithTimestamp(DateTimeOffset.UtcNow)));
     }
@@ -203,7 +203,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Aktive Verwarnungen", "⚠️")
-            .WithColor(CozyCoveUI.CozyWarning)
+            .WithColor(SectorUI.SectorWarning)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -244,7 +244,7 @@ public sealed class TeamCommand
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", $"Rollenwechsel von {target.Username}", "👥")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow)));
     }
@@ -360,7 +360,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Abmeldungs-Statistik", "👥")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription(
                 $"User: {target.Mention}\n" +
                 $"Anzahl Abmeldungen: **{stats.Count}**\n" +
@@ -402,7 +402,7 @@ public sealed class TeamCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", $"Abmeldungen von {target.Username}", "👥")
-            .WithColor(CozyCoveUI.CozyInfoBlue)
+            .WithColor(SectorUI.SectorInfoBlue)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -487,7 +487,7 @@ public sealed class TeamCommand
 
             await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
                 .WithFeatureTitle("Teams", $"Notizen zu Warnung #{warningId}", "⚠️")
-                .WithColor(CozyCoveUI.CozyWarning)
+                .WithColor(SectorUI.SectorWarning)
                 .WithDescription(string.Join("\n\n", lines))
                 .WithFeatureFooter("Teams", warning.IsResolved ? "Status: gelöst" : "Status: offen")
                 .WithTimestamp(DateTimeOffset.UtcNow)));

@@ -13,7 +13,7 @@ public static class BlackjackUI
     {
         var builder = new DiscordInteractionResponseBuilder();
 
-        var embed = CozyCoveUI.CreateBaseEmbed("🃏 Blackjack", GetStatusMessage(game))
+        var embed = SectorUI.CreateBaseEmbed("🃏 Blackjack", GetStatusMessage(game))
             .WithImageUrl("attachment://blackjack.png")
             .AddField("Dealer", (game.Status == GameStatus.Playing || game.Status == GameStatus.PlayerBust || game.Status == GameStatus.PlayerBlackjack) ? "?" : game.DealerValue.ToString(), true)
             .AddField("Player Hand", game.PlayerValue.ToString(), true);

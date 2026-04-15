@@ -42,7 +42,7 @@ public sealed class TeamListService
 
             var embed = new DiscordEmbedBuilder()
                 .WithTitle(config.CustomTitle ?? "📋 Team List")
-                .WithColor(CozyCoveUI.CozyPrimary)
+                .WithColor(SectorUI.SectorPrimary)
                 .WithTimestamp(DateTimeOffset.UtcNow);
 
             if (!string.IsNullOrWhiteSpace(config.CustomFooter))

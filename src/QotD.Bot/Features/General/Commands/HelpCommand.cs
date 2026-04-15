@@ -14,7 +14,7 @@ public sealed class HelpCommand
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Help", "Dashboard", "📖")
             .WithDescription("Use the dropdown menu below to switch categories and review the available commands.")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithFeatureFooter("Help", "v1.1.0")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

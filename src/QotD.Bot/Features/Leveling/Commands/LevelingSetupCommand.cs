@@ -35,7 +35,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Level-Up-Kanal konfiguriert")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"Level-Up-Meldungen werden jetzt in {channel.Mention} gepostet.")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -58,7 +58,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Level-Up-Benachrichtigungen deaktiviert")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription("Level-Up-Meldungen werden nicht mehr gepostet.")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -87,7 +87,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Voice-XP Regeln aktualisiert")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription(
                 $"Minimale aktive User im Voice: **{normalizedMinUsers}**\n" +
                 $"Self-muted/deafened erhalten XP: **{(allowSelfMutedOrDeafened ? "Ja" : "Nein")}**")

@@ -34,12 +34,12 @@ public sealed class QotDPostingService(IServiceProvider serviceProvider, ILogger
                 questionId,
                 date.ToString("dd.MM.yyyy"));
 
-            embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", description);
+            embedBuilder = SectorUI.CreateBaseEmbed("❓ Frage des Tages", description);
         }
         else
         {
             var title = isTest ? "❓ Test: Frage des Tages" : "❓ Frage des Tages";
-            embedBuilder = CozyCoveUI.CreateBaseEmbed(title, questionText);
+            embedBuilder = SectorUI.CreateBaseEmbed(title, questionText);
         }
 
         embedBuilder.WithFeatureFooter("QotD", date.ToString("dddd, dd. MMMM yyyy"));

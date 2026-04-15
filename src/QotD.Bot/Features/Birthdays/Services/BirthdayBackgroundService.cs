@@ -141,7 +141,7 @@ public sealed class BirthdayBackgroundService(
                 var embed = new DiscordEmbedBuilder()
                     .WithTitle("🎂 Happy Birthday!")
                     .WithDescription($"Today we are celebrating the birthday of:\n{names}\n\nHave a fantastic day! 🎉")
-                    .WithColor(CozyCoveUI.CozyGold)
+                    .WithColor(SectorUI.SectorGold)
                     .WithThumbnail("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R5Z3R5Z3R5Z3R5Z3R5Z3R5Z3R5Z3R5Z3R5Z3R5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKDkDbIDJieKbVm/giphy.gif");
 
                 await channel.SendMessageAsync(embed);

@@ -145,7 +145,7 @@ public sealed class VoiceXpBackgroundService(
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
-            .WithColor(CozyCoveUI.CozySuccessGreen)
+            .WithColor(SectorUI.SectorSuccessGreen)
             .WithDescription($"{member.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

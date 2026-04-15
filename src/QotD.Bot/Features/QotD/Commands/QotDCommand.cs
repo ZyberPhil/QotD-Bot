@@ -52,7 +52,7 @@ public sealed class QotDCommand
         if (questions.Count == 0)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateInfoEmbed("No upcoming questions are scheduled.", "📭 Queue Empty"))
+                .AddEmbed(SectorUI.CreateInfoEmbed("No upcoming questions are scheduled.", "📭 Queue Empty"))
                 .AsEphemeral());
             return;
         }
@@ -63,7 +63,7 @@ public sealed class QotDCommand
             sb.AppendLine($"> **{q.ScheduledFor:yyyy-MM-dd}** (`#{q.Id}`) — {q.QuestionText[..Math.Min(80, q.QuestionText.Length)]}{(q.QuestionText.Length > 80 ? "…" : "")}");
         }
 
-        var embed = CozyCoveUI.CreateBaseEmbed($"📅 Upcoming Questions ({questions.Count})", sb.ToString())
+        var embed = SectorUI.CreateBaseEmbed($"📅 Upcoming Questions ({questions.Count})", sb.ToString())
             .WithFeatureFooter("QotD", "Showing next 25 unposted questions")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -82,7 +82,7 @@ public sealed class QotDCommand
         if (text.Length > 2000)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
                 .AsEphemeral());
             return;
         }
@@ -90,7 +90,7 @@ public sealed class QotDCommand
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var scheduledFor))
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`, e.g. `2026-03-07`."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`, e.g. `2026-03-07`."))
                 .AsEphemeral());
             return;
         }
@@ -98,7 +98,7 @@ public sealed class QotDCommand
         if (scheduledFor < DateOnly.FromDateTime(DateTime.UtcNow))
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Cannot schedule a question in the past."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Cannot schedule a question in the past."))
                 .AsEphemeral());
             return;
         }
@@ -110,7 +110,7 @@ public sealed class QotDCommand
         if (existing is not null)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed($"A question is already scheduled for **{scheduledFor:yyyy-MM-dd}**:\n*\"{existing.QuestionText}\"*"))
+                .AddEmbed(SectorUI.CreateErrorEmbed($"A question is already scheduled for **{scheduledFor:yyyy-MM-dd}**:\n*\"{existing.QuestionText}\""))
                 .AsEphemeral());
             return;
         }
@@ -121,7 +121,7 @@ public sealed class QotDCommand
 
         _logger.LogInformation("Added question #{Id} for {Date}.", question.Id, scheduledFor);
 
-        var embed = CozyCoveUI.CreateSuccessEmbed($"**{text}**", "✅ Question Scheduled")
+        var embed = SectorUI.CreateSuccessEmbed($"**{text}**", "✅ Question Scheduled")
             .AddField("Date", scheduledFor.ToString("dddd, MMMM d, yyyy"), inline: true)
             .AddField("Question ID", $"#{question.Id}", inline: true)
             .WithTimestamp(DateTimeOffset.UtcNow);
@@ -142,7 +142,7 @@ public sealed class QotDCommand
         if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(date))
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("At least one parameter (text or date) must be provided."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("At least one parameter (text or date) must be provided."))
                 .AsEphemeral());
             return;
         }
@@ -150,7 +150,7 @@ public sealed class QotDCommand
         if (!int.TryParse(id, out var questionId))
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid Question ID format."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Invalid Question ID format."))
                 .AsEphemeral());
             return;
         }
@@ -162,7 +162,7 @@ public sealed class QotDCommand
         if (question == null)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
+                .AddEmbed(SectorUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
                 .AsEphemeral());
             return;
         }
@@ -170,7 +170,7 @@ public sealed class QotDCommand
         if (question.Posted)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Already posted questions cannot be edited."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Already posted questions cannot be edited."))
                 .AsEphemeral());
             return;
         }
@@ -181,7 +181,7 @@ public sealed class QotDCommand
             if (text.Length > 2000)
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed("Question text must be 2000 characters or less."))
                     .AsEphemeral());
                 return;
             }
@@ -194,7 +194,7 @@ public sealed class QotDCommand
             if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var newDate))
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed("Invalid date format. Use `YYYY-MM-DD`."))
                     .AsEphemeral());
                 return;
             }
@@ -202,7 +202,7 @@ public sealed class QotDCommand
             if (newDate < DateOnly.FromDateTime(DateTime.UtcNow))
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Cannot move a question to a past date."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed("Cannot move a question to a past date."))
                     .AsEphemeral());
                 return;
             }
@@ -211,7 +211,7 @@ public sealed class QotDCommand
             if (conflicting != null)
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Conflict: Another question is already scheduled for **{newDate:yyyy-MM-dd}**:\n*\"{conflicting.QuestionText}\"*"))
+                    .AddEmbed(SectorUI.CreateErrorEmbed($"Conflict: Another question is already scheduled for **{newDate:yyyy-MM-dd}**:\n*\"{conflicting.QuestionText}\""))
                     .AsEphemeral());
                 return;
             }
@@ -222,7 +222,7 @@ public sealed class QotDCommand
 
         await db.SaveChangesAsync();
 
-        var embed = CozyCoveUI.CreateSuccessEmbed(sb.ToString(), $"✅ Question #{questionId} Updated")
+        var embed = SectorUI.CreateSuccessEmbed(sb.ToString(), $"✅ Question #{questionId} Updated")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
@@ -239,7 +239,7 @@ public sealed class QotDCommand
         if (!int.TryParse(id, out var questionId))
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid Question ID format."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Invalid Question ID format."))
                 .AsEphemeral());
             return;
         }
@@ -251,7 +251,7 @@ public sealed class QotDCommand
         if (question == null)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
+                .AddEmbed(SectorUI.CreateErrorEmbed($"Question `#{questionId}` not found."))
                 .AsEphemeral());
             return;
         }
@@ -259,7 +259,7 @@ public sealed class QotDCommand
         if (question.Posted)
         {
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateErrorEmbed("Already posted questions cannot be deleted."))
+                .AddEmbed(SectorUI.CreateErrorEmbed("Already posted questions cannot be deleted."))
                 .AsEphemeral());
             return;
         }
@@ -269,7 +269,7 @@ public sealed class QotDCommand
         db.Questions.Remove(question);
         await db.SaveChangesAsync();
 
-        var embed = CozyCoveUI.CreateSuccessEmbed($"Deleted Question `#{questionId}` scheduled for `{question.ScheduledFor:yyyy-MM-dd}`.\n\n**Was:** *\"{textPreview}\"*", "🗑️ Question Deleted")
+        var embed = SectorUI.CreateSuccessEmbed($"Deleted Question `#{questionId}` scheduled for `{question.ScheduledFor:yyyy-MM-dd}`.\n\n**Was:** *\"{textPreview}\"*", "🗑️ Question Deleted")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
@@ -298,7 +298,7 @@ public sealed class QotDCommand
 
             if (channel.Type != DiscordChannelType.Text)
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Please select a text channel.")).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Please select a text channel.")).AsEphemeral());
                 return;
             }
 
@@ -309,7 +309,7 @@ public sealed class QotDCommand
             await db.SaveChangesAsync();
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Question of the Day will now be posted in {channel.Mention}.", "✅ Channel Updated"))
+                .AddEmbed(SectorUI.CreateSuccessEmbed($"Question of the Day will now be posted in {channel.Mention}.", "✅ Channel Updated"))
                 .AsEphemeral());
         }
 
@@ -321,7 +321,7 @@ public sealed class QotDCommand
 
             if (!TimeOnly.TryParseExact(time, "HH:mm", out var postTime))
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Invalid time format. Please use HH:mm.")).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Invalid time format. Please use HH:mm.")).AsEphemeral());
                 return;
             }
 
@@ -332,7 +332,7 @@ public sealed class QotDCommand
             await db.SaveChangesAsync();
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Question of the Day will now be posted at **{postTime:HH:mm}**.", "✅ Time Updated"))
+                .AddEmbed(SectorUI.CreateSuccessEmbed($"Question of the Day will now be posted at **{postTime:HH:mm}**.", "✅ Time Updated"))
                 .AsEphemeral());
         }
 
@@ -356,7 +356,7 @@ public sealed class QotDCommand
                 : "Es wird keine Rolle mehr gepinnt.";
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateSuccessEmbed(message, "✅ Ping-Rolle aktualisiert"))
+                .AddEmbed(SectorUI.CreateSuccessEmbed(message, "✅ Ping-Rolle aktualisiert"))
                 .AsEphemeral());
         }
 
@@ -367,7 +367,7 @@ public sealed class QotDCommand
             if (!await CheckPermissionsAsync(ctx)) return;
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateInfoEmbed("📝 Bitte sende jetzt die Nachricht für das Template.\nPlatzhalter: `{question}`, `{date}`, `{question_id}`.\nLegacy bleibt kompatibel: `{message}`, `{date}`, `{id}`.", "Template Setup"))
+                .AddEmbed(SectorUI.CreateInfoEmbed("📏 Bitte sende jetzt die Nachricht für das Template.\nPlatzhalter: `{question}`, `{date}`, `{question_id}`.\nLegacy bleibt kompatibel: `{message}`, `{date}`, `{id}`.", "Template Setup"))
                 .AsEphemeral());
 
             try
@@ -377,7 +377,7 @@ public sealed class QotDCommand
 
                 if (result.TimedOut)
                 {
-                    await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Zeitüberschreitung.")).AsEphemeral());
+                    await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Zeitüberschreitung.")).AsEphemeral());
                     return;
                 }
 
@@ -387,12 +387,12 @@ public sealed class QotDCommand
                 config.MessageTemplate = result.Result.Content;
                 await db.SaveChangesAsync();
 
-                await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(CozyCoveUI.CreateSuccessEmbed("Template gespeichert!", "✅ Template Saved")).AsEphemeral());
+                await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(SectorUI.CreateSuccessEmbed("Template gespeichert!", "✅ Template Saved")).AsEphemeral());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to capture template.");
-                await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Fehler beim Speichern.")).AsEphemeral());
+                await ctx.FollowupAsync(new DiscordFollowupMessageBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Fehler beim Speichern.")).AsEphemeral());
             }
         }
 
@@ -408,7 +408,7 @@ public sealed class QotDCommand
 
             if (string.IsNullOrWhiteSpace(config.MessageTemplate))
             {
-                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateInfoEmbed("Kein Template gesetzt.", "ℹ️ Info")).AsEphemeral());
+                await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateInfoEmbed("Kein Template gesetzt.", "\u2139\ufe0f Info")).AsEphemeral());
                 return;
             }
 
@@ -417,7 +417,7 @@ public sealed class QotDCommand
                 "Vorschau Text",
                 "1",
                 DateTime.Now.ToString("d"));
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateBaseEmbed("Template Vorschau", preview)).AsEphemeral());
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateBaseEmbed("Template Vorschau", preview)).AsEphemeral());
         }
 
         [Command("reset")]
@@ -432,7 +432,7 @@ public sealed class QotDCommand
             config.MessageTemplate = null;
             await db.SaveChangesAsync();
 
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateSuccessEmbed("Template zurückgesetzt.", "✅ Reset")).AsEphemeral());
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateSuccessEmbed("Template zurückgesetzt.", "✅ Reset")).AsEphemeral());
         }
 
         [Command("test")]
@@ -448,7 +448,7 @@ public sealed class QotDCommand
             if (config.ChannelId == 0)
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed("Es wurde kein Kanal für QotD konfiguriert. Nutze `/qotd config channel`."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed("Es wurde kein Kanal für QotD konfiguriert. Nutze `/qotd config channel`."))
                     .AsEphemeral());
                 return;
             }
@@ -462,7 +462,7 @@ public sealed class QotDCommand
             if (!botPermissions.HasPermission(DiscordPermission.SendMessages))
             {
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Ich habe keine Berechtigung, Nachrichten in <#{config.ChannelId}> zu senden. Bitte prüfe meine Rollen und Kanal-Berechtigungen."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed($"Ich habe keine Berechtigung, Nachrichten in <#{config.ChannelId}> zu senden. Bitte prüfe meine Rollen und Kanal-Berechtigungen."))
                     .AsEphemeral());
                 return;
             }
@@ -478,14 +478,14 @@ public sealed class QotDCommand
                     isTest: true);
 
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateSuccessEmbed($"Test-Nachricht wurde in <#{config.ChannelId}> gesendet.", "✅ Test erfolgreich"))
+                    .AddEmbed(SectorUI.CreateSuccessEmbed($"Test-Nachricht wurde in <#{config.ChannelId}> gesendet.", "✅ Test erfolgreich"))
                     .AsEphemeral());
             }
             catch (DSharpPlus.Exceptions.DiscordException ex)
             {
                 _logger.LogError(ex, "Failed to send test message to channel {ChannelId}.", config.ChannelId);
                 await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                    .AddEmbed(CozyCoveUI.CreateErrorEmbed($"Discord API Fehler: {ex.Message} (Stelle sicher, dass ich den Kanal sehen und darin schreiben darf)."))
+                    .AddEmbed(SectorUI.CreateErrorEmbed($"Discord API Fehler: {ex.Message} (Stelle sicher, dass ich den Kanal sehen und darin schreiben darf)."))
                     .AsEphemeral());
             }
         }
@@ -495,13 +495,13 @@ public sealed class QotDCommand
     {
         if (ctx.Guild is null)
         {
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Nur im Server nutzbar.")).AsEphemeral());
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Nur im Server nutzbar.")).AsEphemeral());
             return false;
         }
 
         if (ctx.Member is null || !ctx.Member.Permissions.HasPermission(DiscordPermission.ManageGuild))
         {
-            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateErrorEmbed("Berechtigung **Server verwalten** erforderlich.")).AsEphemeral());
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(SectorUI.CreateErrorEmbed("Berechtigung **Server verwalten** erforderlich.")).AsEphemeral());
             return false;
         }
         return true;

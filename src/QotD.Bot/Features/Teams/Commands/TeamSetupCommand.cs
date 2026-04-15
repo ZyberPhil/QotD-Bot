@@ -24,7 +24,7 @@ public sealed class TeamSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Teams", "Dynamic List Setup", "📋")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription("Configure the dynamic team list message. The bot automatically updates the message in the selected channel when tracked roles change.");
 
         var sb = new StringBuilder();

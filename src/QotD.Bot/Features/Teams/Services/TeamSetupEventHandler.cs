@@ -112,7 +112,7 @@ public sealed class TeamSetupEventHandler :
 
             DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
             embed.WithFeatureTitle("Teams", "List Customization", "📋");
-            embed.WithColor(CozyCoveUI.CozyPrimary);
+            embed.WithColor(SectorUI.SectorPrimary);
             embed.WithDescription("Edit the team list header, body, and footer.");
 
             StringBuilder sb = new StringBuilder();
@@ -200,7 +200,7 @@ public sealed class TeamSetupEventHandler :
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
         embed.WithFeatureTitle("Teams", "List Customization", "📋");
-        embed.WithColor(CozyCoveUI.CozyPrimary);
+        embed.WithColor(SectorUI.SectorPrimary);
         embed.WithDescription("Edit the team list header, body, and footer.");
 
         StringBuilder sb = new StringBuilder();
@@ -229,7 +229,7 @@ public sealed class TeamSetupEventHandler :
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
         embed.WithFeatureTitle("Teams", "Dynamic List Setup", "📋");
-        embed.WithColor(CozyCoveUI.CozyPrimary);
+        embed.WithColor(SectorUI.SectorPrimary);
         embed.WithDescription("Configure the dynamic team list message.");
 
         StringBuilder sb = new StringBuilder();

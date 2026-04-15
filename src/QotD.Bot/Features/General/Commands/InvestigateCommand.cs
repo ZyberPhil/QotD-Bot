@@ -41,7 +41,7 @@ public sealed class InvestigateCommand
             }
         }
 
-        var embed = CozyCoveUI.CreateBaseEmbed(
+        var embed = SectorUI.CreateBaseEmbed(
             "📁 Fallakte: Analyse läuft...",
             $"Die Untersuchung des Subjekts **{user.Username}** wurde eingeleitet.")
             .AddField("🆔 Subjekt-ID", user.Id.ToString(), true)

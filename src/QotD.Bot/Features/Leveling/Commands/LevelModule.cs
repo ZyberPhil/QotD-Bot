@@ -34,7 +34,7 @@ public sealed class LevelModule
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle($"Rank von {target.Username}")
-            .WithColor(CozyCoveUI.CozyPrimary)
+            .WithColor(SectorUI.SectorPrimary)
             .WithDescription($"**Level:** {snapshot.Level}\n**Gesamt-XP:** {snapshot.TotalXp}")
             .AddField("Rang", snapshot.Rank > 0 ? $"#{snapshot.Rank}" : "Unplatziert", true)
             .AddField("Fortschritt", $"{snapshot.CurrentLevelXp}/{snapshot.RequiredLevelXp} XP ({progressPercent}%)", true)
@@ -66,7 +66,7 @@ public sealed class LevelModule
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Leaderboard")
-            .WithColor(CozyCoveUI.CozyGold)
+            .WithColor(SectorUI.SectorGold)
             .WithDescription(string.Join("\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
 

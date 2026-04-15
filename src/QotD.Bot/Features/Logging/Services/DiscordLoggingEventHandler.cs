@@ -73,10 +73,10 @@ public sealed class DiscordLoggingEventHandler :
         if (e.Guild == null || e.Message == null || e.Message.Author?.IsBot == true) return;
 
         var content = string.IsNullOrWhiteSpace(e.Message.Content) ? "*No text content*" : e.Message.Content;
-        var embed = CozyCoveUI.CreateLogEmbed(
+        var embed = SectorUI.CreateLogEmbed(
             $"{BotEmojis.Delete} Message Deleted",
             $"A message by <@{e.Message.Author?.Id}> was deleted in <#{e.Channel.Id}>.\n\n**Content:**\n{content}",
-            CozyCoveUI.CozyDanger,
+            SectorUI.SectorDanger,
             $"Author ID: {e.Message.Author?.Id} | Message ID: {e.Message.Id}");
 
         await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageDeleted);
@@ -89,10 +89,10 @@ public sealed class DiscordLoggingEventHandler :
 
         var before = string.IsNullOrWhiteSpace(e.MessageBefore.Content) ? "*No text content*" : e.MessageBefore.Content;
         var after = string.IsNullOrWhiteSpace(e.Message?.Content) ? "*No text content*" : e.Message.Content;
-        var embed = CozyCoveUI.CreateLogEmbed(
+        var embed = SectorUI.CreateLogEmbed(
             $"{BotEmojis.Edit} Message Edited",
             $"[Jump to message]({e.Message?.JumpLink}) in <#{e.Channel.Id}>\n\n**Before:**\n{before}\n\n**After:**\n{after}",
-            CozyCoveUI.CozyWarning,
+            SectorUI.SectorWarning,
             $"Author ID: {e.Message?.Author?.Id} | Message ID: {e.Message?.Id}");
 
         await SendLogAsync(client, e.Guild.Id, embed.Build(), LogType.MessageUpdated);
@@ -103,10 +103,10 @@ public sealed class DiscordLoggingEventHandler :
         var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
         var joinedAt = FormatDate(e.Member.JoinedAt);
 
-        var embed = CozyCoveUI.CreateLogEmbed(
+        var embed = SectorUI.CreateLogEmbed(
                 $"{BotEmojis.Join} Member Joined",
                 $"{e.Member.Mention} ist dem Server beigetreten.",
-                CozyCoveUI.CozySuccessGreen,
+                SectorUI.SectorSuccessGreen,
                 $"User ID: {e.Member.Id} | Join Event")
             .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
             .AddField("Beitrittsdatum", joinedAt, true)
@@ -125,10 +125,10 @@ public sealed class DiscordLoggingEventHandler :
         var roles = FormatRoles(e.Member.Roles, e.Guild.EveryoneRole.Id);
         var joinedAt = FormatDate(e.Member.JoinedAt);
 
-        var embed = CozyCoveUI.CreateLogEmbed(
+        var embed = SectorUI.CreateLogEmbed(
                 $"{BotEmojis.Leave} Member Left",
                 $"{e.Member.Mention} hat den Server verlassen.",
-                CozyCoveUI.CozyDanger,
+                SectorUI.SectorDanger,
                 $"User ID: {e.Member.Id} | Leave Event")
             .AddField("Benutzer", $"{e.Member.Mention}\n{e.Member.Username}", true)
             .AddField("Beitrittsdatum", joinedAt, true)
@@ -154,10 +154,10 @@ public sealed class DiscordLoggingEventHandler :
 
         if (userId == 0 || guildId == 0) return;
 
-        var embed = CozyCoveUI.CreateLogEmbed(
+        var embed = SectorUI.CreateLogEmbed(
             $"{BotEmojis.Voice} Voice Update",
             "",
-            CozyCoveUI.CozyInfoBlue,
+            SectorUI.SectorInfoBlue,
             $"User ID: {userId}");
 
         if (beforeChannelId == 0 && afterChannelId != 0)
