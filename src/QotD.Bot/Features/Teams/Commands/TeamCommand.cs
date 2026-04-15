@@ -56,7 +56,7 @@ public sealed class TeamCommand
             }));
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle($"Dein Team-Status - {ctx.User.Username}")
+            .WithFeatureTitle("Teams", $"Status - {ctx.User.Username}", "👥")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription(
                 $"Nachrichten diese Woche: **{status.MessageCount}**\n" +
@@ -100,7 +100,7 @@ public sealed class TeamCommand
         }
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("Team Ranking (aktuelle Woche)")
+            .WithFeatureTitle("Teams", "Ranking (aktuelle Woche)", "👥")
             .WithColor(CozyCoveUI.CozyGold)
             .WithDescription(string.Join("\n", lines))
             .WithFeatureFooter("Teams", "Score = Nachrichten + (Voice-Minuten / 10)")
@@ -131,7 +131,7 @@ public sealed class TeamCommand
             (int)Math.Max(0, minVoiceMinutes));
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("Mindestaktivität gesetzt")
+            .WithFeatureTitle("Teams", "Mindestaktivität gesetzt", "👥")
             .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription(
                 $"Rolle: {role.Mention}\n" +
@@ -155,7 +155,7 @@ public sealed class TeamCommand
 
         var config = await _teamActivityService.SetWeeklyReportChannelAsync(ctx.Guild.Id, channel.Id);
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
-            .WithTitle("Wöchentlicher Teamreport aktiviert")
+            .WithFeatureTitle("Teams", "Wöchentlicher Teamreport aktiviert", "👥")
             .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription($"Berichte werden jetzt in {channel.Mention} gepostet.\nNächster Report läuft automatisch am Wochenwechsel.")
             .WithTimestamp(DateTimeOffset.UtcNow)));
@@ -202,7 +202,7 @@ public sealed class TeamCommand
         });
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("Aktive Team-Verwarnungen")
+            .WithFeatureTitle("Teams", "Aktive Verwarnungen", "⚠️")
             .WithColor(CozyCoveUI.CozyWarning)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
@@ -243,7 +243,7 @@ public sealed class TeamCommand
         });
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
-            .WithTitle($"Rollenwechsel von {target.Username}")
+            .WithFeatureTitle("Teams", $"Rollenwechsel von {target.Username}", "👥")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow)));
@@ -359,7 +359,7 @@ public sealed class TeamCommand
         var stats = await _teamActivityService.GetLeaveStatsAsync(ctx.Guild.Id, target.Id);
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle("Abmeldungs-Statistik")
+            .WithFeatureTitle("Teams", "Abmeldungs-Statistik", "👥")
             .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription(
                 $"User: {target.Mention}\n" +
@@ -401,7 +401,7 @@ public sealed class TeamCommand
         });
 
         var embed = new DiscordEmbedBuilder()
-            .WithTitle($"Abmeldungen von {target.Username}")
+            .WithFeatureTitle("Teams", $"Abmeldungen von {target.Username}", "👥")
             .WithColor(CozyCoveUI.CozyInfoBlue)
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
@@ -486,7 +486,7 @@ public sealed class TeamCommand
             });
 
             await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder()
-                .WithTitle($"Notizen zu Warnung #{warningId}")
+                .WithFeatureTitle("Teams", $"Notizen zu Warnung #{warningId}", "⚠️")
                 .WithColor(CozyCoveUI.CozyWarning)
                 .WithDescription(string.Join("\n\n", lines))
                 .WithFeatureFooter("Teams", warning.IsResolved ? "Status: gelöst" : "Status: offen")
