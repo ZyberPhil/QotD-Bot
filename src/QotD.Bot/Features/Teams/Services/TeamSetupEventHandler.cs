@@ -120,6 +120,10 @@ public sealed class TeamSetupEventHandler :
             sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
             sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
             embed.AddField("Current Text Settings", sb.ToString());
+            embed.AddField("Template Tokens",
+                "Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`\n" +
+                "Legacy: `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`",
+                false);
 
             DiscordButtonComponent btnTitle = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_title", "Edit Title");
             DiscordButtonComponent btnBody = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_body", "Edit Body (Template)");
@@ -151,7 +155,13 @@ public sealed class TeamSetupEventHandler :
         var guildId = e.Interaction.GuildId!.Value;
 
         DiscordInteractionResponseBuilder prompt = new DiscordInteractionResponseBuilder();
-        prompt.WithContent($"Please type the new **{field}** now. (Type `cancel` to stop)");
+        var promptText = $"Please type the new **{field}** now. (Type `cancel` to stop)";
+        if (field == "body")
+        {
+            promptText += "\nTokens: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}` (legacy still works).";
+        }
+
+        prompt.WithContent(promptText);
         prompt.AsEphemeral();
         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, prompt);
 
@@ -198,6 +208,10 @@ public sealed class TeamSetupEventHandler :
         sb.AppendLine($"**Body Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
         sb.AppendLine($"**Footer:** {config?.CustomFooter ?? "❌ Not Set"}");
         embed.AddField("Current Text Settings", sb.ToString());
+        embed.AddField("Template Tokens",
+            "Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`\n" +
+            "Legacy: `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`",
+            false);
 
         DiscordButtonComponent btnTitle = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_title", "Edit Title");
         DiscordButtonComponent btnBody = new DiscordButtonComponent(DiscordButtonStyle.Secondary, "teamsetup_edit_body", "Edit Body (Template)");
@@ -228,6 +242,7 @@ public sealed class TeamSetupEventHandler :
         sb.AppendLine($"**Title:** {config?.CustomTitle ?? "Default"}");
         sb.AppendLine($"**Template:** {(string.IsNullOrWhiteSpace(config?.CustomTemplate) ? "Default" : "Custom")}");
         sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
+        sb.AppendLine("**Template Tokens:** `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`");
         embed.AddField("Current Configuration", sb.ToString());
 
         DiscordChannelSelectComponent channelSelect = new DiscordChannelSelectComponent("teamsetup_channel", "Select target channel...");

@@ -41,6 +41,7 @@ public sealed class TeamSetupCommand
             ? "Default Template" 
             : "Custom Template Active";
         sb.AppendLine($"**Template:** {templateDisplay}");
+        sb.AppendLine("**Template Tokens:** `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`");
         sb.AppendLine($"**Footer:** {(string.IsNullOrWhiteSpace(config?.CustomFooter) ? "❌ Not Set" : "✅ Set")}");
         
         embed.AddField("Current Configuration", sb.ToString());
