@@ -39,6 +39,7 @@ public sealed class LevelModule
             .AddField("Rang", snapshot.Rank > 0 ? $"#{snapshot.Rank}" : "Unplatziert", true)
             .AddField("Fortschritt", $"{snapshot.CurrentLevelXp}/{snapshot.RequiredLevelXp} XP ({progressPercent}%)", true)
             .AddField("Nachrichten", snapshot.MessageCount.ToString(), true)
+            .WithUserThumbnail(target)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));

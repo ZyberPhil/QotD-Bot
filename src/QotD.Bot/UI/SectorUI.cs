@@ -91,6 +91,19 @@ public static class SectorUI
     }
 
     /// <summary>
+    /// Setzt das Profilbild eines Users als Thumbnail, sofern vorhanden.
+    /// </summary>
+    public static DiscordEmbedBuilder WithUserThumbnail(this DiscordEmbedBuilder builder, DiscordUser user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
+        {
+            builder.WithThumbnail(user.AvatarUrl);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Erstellt ein standardisiertes Log-Embed mit Zeitstempel.
     /// </summary>
     public static DiscordEmbedBuilder CreateLogEmbed(

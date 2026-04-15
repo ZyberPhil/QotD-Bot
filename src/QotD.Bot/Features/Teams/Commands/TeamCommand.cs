@@ -64,6 +64,7 @@ public sealed class TeamCommand
                 $"Score: **{status.Score:F1}**")
             .AddField("Fortschritt", TruncateField(roleLines), false)
             .AddField("Warnungen", TruncateField(warningsText), false)
+            .WithUserThumbnail(ctx.User)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
@@ -207,6 +208,11 @@ public sealed class TeamCommand
             .WithDescription(string.Join("\n\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
 
+        if (user is not null)
+        {
+            embed.WithUserThumbnail(user);
+        }
+
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
     }
 
@@ -246,6 +252,7 @@ public sealed class TeamCommand
             .WithFeatureTitle("Teams", $"Rollenwechsel von {target.Username}", "👥")
             .WithColor(SectorUI.SectorPrimary)
             .WithDescription(string.Join("\n\n", lines))
+            .WithUserThumbnail(target)
             .WithTimestamp(DateTimeOffset.UtcNow)));
     }
 
@@ -365,6 +372,7 @@ public sealed class TeamCommand
                 $"User: {target.Mention}\n" +
                 $"Anzahl Abmeldungen: **{stats.Count}**\n" +
                 $"Gesamtdauer: **{(int)stats.TotalDuration.TotalDays} Tage {stats.TotalDuration.Hours} Stunden**")
+            .WithUserThumbnail(target)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
@@ -404,6 +412,7 @@ public sealed class TeamCommand
             .WithFeatureTitle("Teams", $"Abmeldungen von {target.Username}", "👥")
             .WithColor(SectorUI.SectorInfoBlue)
             .WithDescription(string.Join("\n\n", lines))
+            .WithUserThumbnail(target)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordMessageBuilder().AddEmbed(embed));
