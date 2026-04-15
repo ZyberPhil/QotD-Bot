@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Teams.Services;
@@ -41,7 +42,7 @@ public sealed class TeamListService
 
             var embed = new DiscordEmbedBuilder()
                 .WithTitle(config.CustomTitle ?? "📋 Team List")
-                .WithColor(DiscordColor.Blurple)
+                .WithColor(CozyCoveUI.CozyPrimary)
                 .WithTimestamp(DateTimeOffset.UtcNow);
 
             if (!string.IsNullOrWhiteSpace(config.CustomFooter))
@@ -67,14 +68,12 @@ public sealed class TeamListService
 
                     if (!string.IsNullOrWhiteSpace(config.CustomTemplate))
                     {
-                        var block = config.CustomTemplate
-                            .Replace("{RoleName}", role.Name)
-                            .Replace("{RoleMention}", role.Mention)
-                            .Replace("{rank}", role.Mention) // Alias for mention
-                            .Replace("{MemberCount}", membersWithRole.Count.ToString())
-                            .Replace("{count}", membersWithRole.Count.ToString()) // Alias for count
-                            .Replace("{MembersList}", membersList)
-                            .Replace("{text}", membersList); // Alias for text
+                        var block = BotPromptTokens.ApplyTeamTemplate(
+                            config.CustomTemplate,
+                            role.Name,
+                            role.Mention,
+                            membersWithRole.Count.ToString(),
+                            membersList);
                         sb.AppendLine(block);
                     }
                     else

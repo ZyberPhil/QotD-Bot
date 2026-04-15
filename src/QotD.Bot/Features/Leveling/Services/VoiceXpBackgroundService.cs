@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.Leveling.Services;
 
@@ -144,7 +145,7 @@ public sealed class VoiceXpBackgroundService(
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
-            .WithColor(DiscordColor.SpringGreen)
+            .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription($"{member.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

@@ -28,10 +28,11 @@ public sealed class QotDPostingService(IServiceProvider serviceProvider, ILogger
 
         if (!string.IsNullOrWhiteSpace(config.MessageTemplate))
         {
-            var description = config.MessageTemplate
-                .Replace("{message}", questionText)
-                .Replace("{date}", date.ToString("dd.MM.yyyy"))
-                .Replace("{id}", questionId);
+            var description = BotPromptTokens.ApplyQotdTemplate(
+                config.MessageTemplate,
+                questionText,
+                questionId,
+                date.ToString("dd.MM.yyyy"));
 
             embedBuilder = CozyCoveUI.CreateBaseEmbed("❓ Frage des Tages", description);
         }

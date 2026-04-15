@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
 using QotD.Bot.Features.Leveling.Services;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Teams.Services;
@@ -741,7 +742,7 @@ public sealed class TeamActivityService(
             var dm = await user.CreateDmChannelAsync();
             var embed = new DiscordEmbedBuilder()
                 .WithTitle("Team-Aktivitätsminimum nicht erreicht")
-                .WithColor(DiscordColor.Orange)
+                .WithColor(CozyCoveUI.CozyWarning)
                 .WithDescription(
                     $"Server: **{guild.Name}**\n" +
                     $"Woche ab: **{weekStart:yyyy-MM-dd}**\n" +
@@ -760,7 +761,7 @@ public sealed class TeamActivityService(
     {
         var embed = new DiscordEmbedBuilder()
             .WithTitle($"Weekly Team Report - {guild.Name}")
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithTimestamp(DateTimeOffset.UtcNow)
             .WithFooter($"Week starting {report.WeekStartUtc:yyyy-MM-dd}");
 

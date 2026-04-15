@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
 using QotD.Bot.Data.Models;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Teams.Services;
@@ -111,7 +112,7 @@ public sealed class TeamSetupEventHandler :
 
             DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
             embed.WithTitle("📋 Team List Customization");
-            embed.WithColor(DiscordColor.Blurple);
+            embed.WithColor(CozyCoveUI.CozyPrimary);
             embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
 
             StringBuilder sb = new StringBuilder();
@@ -189,7 +190,7 @@ public sealed class TeamSetupEventHandler :
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
         embed.WithTitle("📋 Team List Customization");
-        embed.WithColor(DiscordColor.Blurple);
+        embed.WithColor(CozyCoveUI.CozyPrimary);
         embed.WithDescription("Customize the Header, Body, and Footer of the team list embed.");
 
         StringBuilder sb = new StringBuilder();
@@ -214,7 +215,7 @@ public sealed class TeamSetupEventHandler :
     {
         DiscordEmbedBuilder embed = new DiscordEmbedBuilder();
         embed.WithTitle("📋 Dynamic Team List Setup");
-        embed.WithColor(DiscordColor.Blurple);
+        embed.WithColor(CozyCoveUI.CozyPrimary);
         embed.WithDescription("Configure the dynamic team list message.");
 
         StringBuilder sb = new StringBuilder();

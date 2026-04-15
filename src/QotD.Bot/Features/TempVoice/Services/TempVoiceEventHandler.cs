@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QotD.Bot.Data;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.TempVoice.Services;
 
@@ -285,7 +286,7 @@ public sealed class TempVoiceEventHandler :
         var embed = new DiscordEmbedBuilder()
             .WithTitle("🎛️ Voice Channel Control Panel")
             .WithDescription($"Owner: {owner.Mention}\n\nUse the buttons below to manage your channel.")
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .Build();
 
         var renameBtn = new DiscordButtonComponent(DiscordButtonStyle.Primary, "tv_rename", "✏️ Rename");

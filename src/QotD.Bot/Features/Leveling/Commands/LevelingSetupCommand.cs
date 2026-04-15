@@ -2,6 +2,7 @@ using System.ComponentModel;
 using DSharpPlus.Commands;
 using DSharpPlus.Entities;
 using QotD.Bot.Features.Leveling.Services;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.Leveling.Commands;
 
@@ -34,7 +35,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Level-Up-Kanal konfiguriert")
-            .WithColor(DiscordColor.Green)
+            .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription($"Level-Up-Meldungen werden jetzt in {channel.Mention} gepostet.")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -57,7 +58,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Level-Up-Benachrichtigungen deaktiviert")
-            .WithColor(DiscordColor.Green)
+            .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription("Level-Up-Meldungen werden nicht mehr gepostet.")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
@@ -86,7 +87,7 @@ public class LevelingSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("✅ Voice-XP Regeln aktualisiert")
-            .WithColor(DiscordColor.Green)
+            .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription(
                 $"Minimale aktive User im Voice: **{normalizedMinUsers}**\n" +
                 $"Self-muted/deafened erhalten XP: **{(allowSelfMutedOrDeafened ? "Ja" : "Nein")}**")

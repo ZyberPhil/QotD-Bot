@@ -1,6 +1,7 @@
 using DSharpPlus.Commands;
 using DSharpPlus.Entities;
 using QotD.Bot.Features.General.Services;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.General.Commands;
 
@@ -13,7 +14,7 @@ public sealed class HelpCommand
         var embed = new DiscordEmbedBuilder()
             .WithTitle("📖 CozyCove Help Dashboard")
             .WithDescription("Welcome to the CozyCove Help System!\n\nPlease use the dropdown menu below to select a specific category and view its commands.")
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithFooter("CozyCove System v1.1.0")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

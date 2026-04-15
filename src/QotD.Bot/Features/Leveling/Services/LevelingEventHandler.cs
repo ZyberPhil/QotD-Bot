@@ -1,6 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.Leveling.Services;
 
@@ -44,7 +45,7 @@ public sealed class LevelingEventHandler : IEventHandler<MessageCreatedEventArgs
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Up")
-            .WithColor(DiscordColor.SpringGreen)
+            .WithColor(CozyCoveUI.CozySuccessGreen)
             .WithDescription($"{e.Author.Mention} hat Level **{result.NewLevel}** erreicht!\n+{result.GainedXp} XP")
             .WithTimestamp(DateTimeOffset.UtcNow);
 

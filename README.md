@@ -85,6 +85,25 @@ The bot will auto-apply database migrations on startup.
 
 ---
 
+## 🧩 Template Placeholder Standard
+
+The bot now supports a unified placeholder style with snake_case tokens.
+Legacy placeholders are still accepted for backward compatibility.
+
+### QotD Template
+
+- Preferred: `{question}`, `{date}`, `{question_id}`
+- Legacy (still supported): `{message}`, `{date}`, `{id}`
+
+### Team List Template
+
+- Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`
+- Legacy (still supported): `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`
+
+Compatibility is handled in code via centralized token replacement helpers in the UI layer.
+
+---
+
 ## 🏗️ Project Structure
 
 ```

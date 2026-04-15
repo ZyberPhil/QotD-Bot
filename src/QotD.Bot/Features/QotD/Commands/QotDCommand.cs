@@ -367,7 +367,7 @@ public sealed class QotDCommand
             if (!await CheckPermissionsAsync(ctx)) return;
 
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder()
-                .AddEmbed(CozyCoveUI.CreateInfoEmbed("📝 Bitte sende jetzt die Nachricht für das Template.\nPlatzhalter: `{message}`, `{date}`, `{id}`.", "Template Setup"))
+                .AddEmbed(CozyCoveUI.CreateInfoEmbed("📝 Bitte sende jetzt die Nachricht für das Template.\nPlatzhalter: `{question}`, `{date}`, `{question_id}`.\nLegacy bleibt kompatibel: `{message}`, `{date}`, `{id}`.", "Template Setup"))
                 .AsEphemeral());
 
             try
@@ -412,7 +412,11 @@ public sealed class QotDCommand
                 return;
             }
 
-            var preview = config.MessageTemplate.Replace("{message}", "Vorschau Text").Replace("{date}", DateTime.Now.ToString("d")).Replace("{id}", "1");
+            var preview = BotPromptTokens.ApplyQotdTemplate(
+                config.MessageTemplate,
+                "Vorschau Text",
+                "1",
+                DateTime.Now.ToString("d"));
             await ctx.RespondAsync(new DiscordInteractionResponseBuilder().AddEmbed(CozyCoveUI.CreateBaseEmbed("Template Vorschau", preview)).AsEphemeral());
         }
 

@@ -1,6 +1,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.General.Services;
@@ -19,7 +20,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
         var selectedCategory = e.Interaction.Data.Values[0];
 
         var embed = new DiscordEmbedBuilder()
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         var sb = new StringBuilder();

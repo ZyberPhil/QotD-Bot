@@ -2,6 +2,7 @@ using System.ComponentModel;
 using DSharpPlus.Commands;
 using DSharpPlus.Entities;
 using QotD.Bot.Features.Leveling.Services;
+using QotD.Bot.UI;
 
 namespace QotD.Bot.Features.Leveling.Commands;
 
@@ -33,7 +34,7 @@ public sealed class LevelModule
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle($"Rank von {target.Username}")
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription($"**Level:** {snapshot.Level}\n**Gesamt-XP:** {snapshot.TotalXp}")
             .AddField("Rang", snapshot.Rank > 0 ? $"#{snapshot.Rank}" : "Unplatziert", true)
             .AddField("Fortschritt", $"{snapshot.CurrentLevelXp}/{snapshot.RequiredLevelXp} XP ({progressPercent}%)", true)
@@ -65,7 +66,7 @@ public sealed class LevelModule
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("Level Leaderboard")
-            .WithColor(DiscordColor.Gold)
+            .WithColor(CozyCoveUI.CozyGold)
             .WithDescription(string.Join("\n", lines))
             .WithTimestamp(DateTimeOffset.UtcNow);
 

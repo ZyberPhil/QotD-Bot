@@ -5,6 +5,7 @@ using DSharpPlus.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QotD.Bot.Data;
+using QotD.Bot.UI;
 using System.Text;
 
 namespace QotD.Bot.Features.Teams.Commands;
@@ -23,7 +24,7 @@ public sealed class TeamSetupCommand
 
         var embed = new DiscordEmbedBuilder()
             .WithTitle("📋 Dynamic Team List Setup")
-            .WithColor(DiscordColor.Blurple)
+            .WithColor(CozyCoveUI.CozyPrimary)
             .WithDescription("Configure the dynamic team list message. The bot will automatically update the message in the selected channel whenever members gain or lose the tracked roles.");
 
         var sb = new StringBuilder();
