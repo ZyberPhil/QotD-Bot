@@ -98,6 +98,30 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 sb.AppendLine("> There are currently no direct economy slash commands in this bot.");
                 break;
 
+            case "selfroles":
+                embed.WithFeatureTitle("Self Roles", "Commands", "🎭");
+                sb.AppendLine("> **`/selfrolesetup status`** - Show current self-role panel configuration.");
+                sb.AppendLine("> **`/selfrolesetup panel <#channel> [enabled] [...]`** - Configure panel behavior and appearance (Admin).");
+                sb.AppendLine("> **`/selfrolesetup group <name> [exclusive] [order]`** - Create/update a role group (Admin).");
+                sb.AppendLine("> **`/selfrolesetup optionadd <role> <emoji> <label> [...]`** - Add or update a self-role option (Admin).");
+                sb.AppendLine("> **`/selfrolesetup optionremove <role>`** - Remove a self-role option (Admin).");
+                sb.AppendLine("> **`/selfrolesetup publish`** - Render or refresh the panel message (Admin).");
+                break;
+
+            case "linkmoderation":
+                embed.WithFeatureTitle("Link Moderation", "Commands", "🔗");
+                sb.AppendLine("> **`/linkfilter status`** - Show current link filter settings.");
+                sb.AppendLine("> **`/linkfilter enable`** - Enable link filtering (Admin).");
+                sb.AppendLine("> **`/linkfilter disable`** - Disable link filtering (Admin).");
+                sb.AppendLine("> **`/linkfilter mode <whitelist|blacklist>`** - Set filtering mode (Admin).");
+                sb.AppendLine("> **`/linkfilter logchannel [#channel]`** - Set or clear moderation log channel (Admin).");
+                sb.AppendLine("> **`/linkfilter dmwarn <true|false>`** - Toggle DM warning for moderated links (Admin).");
+                sb.AppendLine("> **`/linkfilter channelwarn <true|false>`** - Toggle in-channel warning (Admin).");
+                sb.AppendLine("> **`/linkfilter ruleadd <domain>`** / **`ruleremove <domain>`** / **`rules`** - Manage domain rules.");
+                sb.AppendLine("> **`/linkfilter bypassroleadd/remove/list`** - Manage bypass roles.");
+                sb.AppendLine("> **`/linkfilter bypasschanneladd/remove/list`** - Manage bypass channels.");
+                break;
+
             case "qotd":
                 embed.WithFeatureTitle("Question of the Day", "Commands", "📅");
                 sb.AppendLine("> **`/qotd list`** - See upcoming scheduled questions.");
@@ -146,6 +170,8 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
             new("Birthdays", "birthdays", "Birthday reminders and setup", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🎂"))),
             new("Temp Voice", "voice", "Temporary voice channel controls", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🔊"))),
             new("Economy", "economy", "Coins and balances", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("💰"))),
+            new("Self Roles", "selfroles", "Self-assignable role panel", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🎭"))),
+            new("Link Moderation", "linkmoderation", "Automatic link filtering", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🔗"))),
             new("Question of the Day", "qotd", "QotD scheduling", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("📅"))),
             new("Admin and Config", "admin", "Settings and routing", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("⚙️")))
         };
