@@ -18,6 +18,12 @@ public sealed class AppDbContext : DbContext
     // Logging
     public DbSet<LogRoutingConfig> LogRoutingConfigs => Set<LogRoutingConfig>();
 
+    // Link Moderation
+    public DbSet<LinkFilterConfig> LinkFilterConfigs => Set<LinkFilterConfig>();
+    public DbSet<LinkFilterRule> LinkFilterRules => Set<LinkFilterRule>();
+    public DbSet<LinkFilterBypassRole> LinkFilterBypassRoles => Set<LinkFilterBypassRole>();
+    public DbSet<LinkFilterBypassChannel> LinkFilterBypassChannels => Set<LinkFilterBypassChannel>();
+
     // Teams
     public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
     public DbSet<TeamActivityPolicy> TeamActivityPolicies => Set<TeamActivityPolicy>();
@@ -88,6 +94,35 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<WordChainConfig>(entity =>
         {
             entity.HasIndex(c => c.ChannelId).IsUnique();
+        });
+
+        modelBuilder.Entity<LinkFilterConfig>(entity =>
+        {
+            entity.HasKey(x => x.GuildId);
+            entity.Property(x => x.GuildId).ValueGeneratedNever();
+            entity.Property(x => x.Mode).HasConversion<int>();
+            entity.HasIndex(x => x.LogChannelId);
+        });
+
+        modelBuilder.Entity<LinkFilterRule>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.NormalizedDomain }).IsUnique();
+            entity.HasIndex(x => x.GuildId);
+        });
+
+        modelBuilder.Entity<LinkFilterBypassRole>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.RoleId }).IsUnique();
+            entity.HasIndex(x => x.GuildId);
+        });
+
+        modelBuilder.Entity<LinkFilterBypassChannel>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.ChannelId }).IsUnique();
+            entity.HasIndex(x => x.GuildId);
         });
 
         modelBuilder.Entity<UserBirthday>(entity =>
