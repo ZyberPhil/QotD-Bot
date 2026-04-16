@@ -28,6 +28,12 @@ public sealed class AppDbContext : DbContext
     public DbSet<TeamWarningNote> TeamWarningNotes => Set<TeamWarningNote>();
     public DbSet<TeamLeaveEntry> TeamLeaveEntries => Set<TeamLeaveEntry>();
 
+    // Self Roles
+    public DbSet<SelfRoleConfig> SelfRoleConfigs => Set<SelfRoleConfig>();
+    public DbSet<SelfRoleGroup> SelfRoleGroups => Set<SelfRoleGroup>();
+    public DbSet<SelfRoleOption> SelfRoleOptions => Set<SelfRoleOption>();
+    public DbSet<SelfRoleRequest> SelfRoleRequests => Set<SelfRoleRequest>();
+
     // Birthdays
     public DbSet<UserBirthday> UserBirthdays => Set<UserBirthday>();
     public DbSet<BirthdayConfig> BirthdayConfigs => Set<BirthdayConfig>();
@@ -153,6 +159,41 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.GuildId, x.UserId, x.StartUtc });
             entity.HasIndex(x => new { x.GuildId, x.UserId, x.EndUtc });
+        });
+
+        modelBuilder.Entity<SelfRoleConfig>(entity =>
+        {
+            entity.HasKey(x => x.GuildId);
+            entity.Property(x => x.GuildId).ValueGeneratedNever();
+            entity.HasIndex(x => x.PanelChannelId);
+            entity.HasIndex(x => x.ModerationChannelId);
+        });
+
+        modelBuilder.Entity<SelfRoleGroup>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.Name }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.DisplayOrder });
+        });
+
+        modelBuilder.Entity<SelfRoleOption>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.RoleId }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.EmojiKey }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.DisplayOrder });
+            entity.HasOne(x => x.Group)
+                  .WithMany(g => g.Options)
+                  .HasForeignKey(x => x.GroupId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SelfRoleRequest>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).HasConversion<int>();
+            entity.HasIndex(x => new { x.GuildId, x.Status, x.RequestedAtUtc });
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.RoleId, x.Status });
         });
     }
 }

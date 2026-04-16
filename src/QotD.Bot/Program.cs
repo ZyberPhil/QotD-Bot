@@ -38,6 +38,7 @@ try
         new QotD.Bot.Features.MiniGames.MiniGamesModule(),
         new QotD.Bot.Features.Logging.LoggingModule(),
         new QotD.Bot.Features.Teams.TeamsModule(),
+        new QotD.Bot.Features.SelfRoles.SelfRolesModule(),
         new QotD.Bot.Features.Birthdays.BirthdaysModule()
     ];
 
@@ -105,7 +106,7 @@ try
 
     builder.Services.AddSingleton(s =>
     {
-        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents)
+        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents | DiscordIntents.GuildMessageReactions)
             .ConfigureServices(services =>
             {
                 services.AddDbContext<AppDbContext>(options =>
@@ -131,6 +132,7 @@ try
                 typeof(QotD.Bot.Features.General.Services.HelpMenuEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamSetupEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamListEventHandler),
+                typeof(QotD.Bot.Features.SelfRoles.Services.SelfRoleEventHandler),
                 typeof(QotD.Bot.Features.TempVoice.Services.TempVoiceEventHandler),
                 typeof(LevelingEventHandler)
             ]))
