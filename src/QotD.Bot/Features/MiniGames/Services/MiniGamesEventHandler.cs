@@ -115,16 +115,22 @@ public sealed class MiniGamesEventHandler :
 
     public async Task HandleEventAsync(DiscordClient client, ComponentInteractionCreatedEventArgs e)
     {
+        if (e.Guild is null)
+        {
+            return;
+        }
+
+        var guildId = e.Guild.Id;
         var id = e.Id;
         if (id.StartsWith("tower_"))
         {
-            await HandleTowerInteractionAsync(e);
+            await HandleTowerInteractionAsync(guildId, e);
             return;
         }
         if (!id.StartsWith("bj_")) return;
 
         // Use a per-user lock for all Blackjack interactions to prevent race conditions
-        var userLock = _blackjackService.GetLock(e.User.Id);
+        var userLock = _blackjackService.GetLock(guildId, e.User.Id);
         await userLock.WaitAsync();
 
         try
@@ -171,7 +177,7 @@ public sealed class MiniGamesEventHandler :
                          }
                      }
 
-                     var g = _blackjackService.StartGame(pid, playAgainBet);
+                     var g = _blackjackService.StartGame(guildId, pid, playAgainBet);
                      
                      // Initial deal animation for Play Again
                      _blackjackService.DealToPlayer(g);
@@ -203,7 +209,7 @@ public sealed class MiniGamesEventHandler :
                      if (g.Status != GameStatus.Playing)
                      {
                          await ProcessBlackjackPayoutAsync(g);
-                         _blackjackService.EndGame(pid);
+                         _blackjackService.EndGame(guildId, pid);
                      }
                      return;
                  }
@@ -225,7 +231,7 @@ public sealed class MiniGamesEventHandler :
                 return;
             }
 
-            var activeGame = _blackjackService.GetGame(userId);
+            var activeGame = _blackjackService.GetGame(guildId, userId);
             if (activeGame == null)
             {
                 // CRITICAL: Use ephemeral message so we don't overwrite a finished game board
@@ -267,7 +273,7 @@ public sealed class MiniGamesEventHandler :
                         var bustResp = BlackjackUI.BuildResponse(activeGame, bustImg);
                         await e.Interaction.EditOriginalResponseAsync(bustResp.ToWebhookBuilder());
                         await ProcessBlackjackPayoutAsync(activeGame);
-                        _blackjackService.EndGame(userId);
+                        _blackjackService.EndGame(guildId, userId);
                     }
                     return;
                 case "stand":
@@ -297,7 +303,7 @@ public sealed class MiniGamesEventHandler :
                     if (activeGame.Status != GameStatus.Playing)
                     {
                         await ProcessBlackjackPayoutAsync(activeGame);
-                        _blackjackService.EndGame(userId);
+                        _blackjackService.EndGame(guildId, userId);
                     }
                     return;
             }
@@ -311,7 +317,7 @@ public sealed class MiniGamesEventHandler :
             if (activeGame.Status != GameStatus.Playing)
             {
                 await ProcessBlackjackPayoutAsync(activeGame);
-                _blackjackService.EndGame(userId);
+                _blackjackService.EndGame(guildId, userId);
             }
         }
         catch (Exception ex)
@@ -357,7 +363,7 @@ public sealed class MiniGamesEventHandler :
         }
     }
 
-    private async Task HandleTowerInteractionAsync(ComponentInteractionCreatedEventArgs e)
+    private async Task HandleTowerInteractionAsync(ulong guildId, ComponentInteractionCreatedEventArgs e)
     {
         var id = e.Id;
         var parts = id.Split('_'); // tower_pick_userId_tileIndex OR tower_cashout_userId OR tower_play_again_userId
@@ -404,7 +410,7 @@ public sealed class MiniGamesEventHandler :
                     }
                 }
 
-                var newGame = _towerService.StartGame(playAgainUserId, playAgainBet);
+                var newGame = _towerService.StartGame(guildId, playAgainUserId, playAgainBet);
                 var response = TowerUI.BuildResponse(newGame);
                 if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, response);
@@ -413,7 +419,7 @@ public sealed class MiniGamesEventHandler :
             return;
         }
 
-        var activeGame = _towerService.GetGame(e.User.Id);
+        var activeGame = _towerService.GetGame(guildId, e.User.Id);
 
         // Active game safety checks
         if (activeGame == null || activeGame.Id.ToString() != parts[2] && parts[2] != e.User.Id.ToString())
@@ -430,7 +436,7 @@ public sealed class MiniGamesEventHandler :
             return;
         }
 
-        var userLock = _towerService.GetLock(e.User.Id);
+        var userLock = _towerService.GetLock(guildId, e.User.Id);
         await userLock.WaitAsync();
 
         try
@@ -457,7 +463,7 @@ public sealed class MiniGamesEventHandler :
             if (activeGame.Status != TowerStatus.Playing)
             {
                 await ProcessTowerPayoutAsync(activeGame);
-                _towerService.EndGame(e.User.Id);
+                _towerService.EndGame(guildId, e.User.Id);
             }
         }
         catch (Exception ex)

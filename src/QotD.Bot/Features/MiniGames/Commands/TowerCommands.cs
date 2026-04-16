@@ -22,7 +22,14 @@ public class TowerCommands
     public async ValueTask PlayAsync(CommandContext ctx, 
         [Description("Dein Einsatz (Coins)")] int bet = 100)
     {
-        var userLock = _towerService.GetLock(ctx.User.Id);
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server verwendet werden.");
+            return;
+        }
+
+        var guildId = ctx.Guild.Id;
+        var userLock = _towerService.GetLock(guildId, ctx.User.Id);
         await userLock.WaitAsync();
 
         try
@@ -43,7 +50,7 @@ public class TowerCommands
                 }
             }
 
-            var game = _towerService.StartGame(ctx.User.Id, bet);
+            var game = _towerService.StartGame(guildId, ctx.User.Id, bet);
             var response = TowerUI.BuildResponse(game);
             if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
             await ctx.RespondAsync(response);
