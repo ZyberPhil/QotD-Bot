@@ -11,6 +11,8 @@ using QotD.Bot.Features.General.Models;
 using QotD.Bot.Features.Leveling;
 using QotD.Bot.Features.Leveling.Data;
 using QotD.Bot.Features.Leveling.Services;
+using QotD.Bot.Features.AutoModeration;
+using QotD.Bot.Features.AutoModeration.Services;
 using QotD.Bot.Features.LinkModeration;
 using QotD.Bot.Features.LinkModeration.Services;
 using QotD.Bot.Features.QotD;
@@ -42,6 +44,7 @@ try
         new QotD.Bot.Features.Teams.TeamsModule(),
         new QotD.Bot.Features.SelfRoles.SelfRolesModule(),
         new QotD.Bot.Features.Birthdays.BirthdaysModule(),
+        new AutoModerationModule(),
         new LinkModerationModule()
     ];
 
@@ -130,6 +133,7 @@ try
             })
             .ConfigureEventHandlers(b => b.AddEventHandlers([
                 typeof(LinkModerationEventHandler),
+                typeof(AutoModerationEventHandler),
                 typeof(MiniGamesEventHandler), 
                 typeof(QotD.Bot.Features.Logging.Services.LogSetupEventHandler), 
                 typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler), 

@@ -24,6 +24,11 @@ public sealed class AppDbContext : DbContext
     public DbSet<LinkFilterBypassRole> LinkFilterBypassRoles => Set<LinkFilterBypassRole>();
     public DbSet<LinkFilterBypassChannel> LinkFilterBypassChannels => Set<LinkFilterBypassChannel>();
 
+    // Auto Moderation
+    public DbSet<AutoModerationConfig> AutoModerationConfigs => Set<AutoModerationConfig>();
+    public DbSet<AutoModerationRaidIncident> AutoModerationRaidIncidents => Set<AutoModerationRaidIncident>();
+    public DbSet<AutoModerationAuditEntry> AutoModerationAuditEntries => Set<AutoModerationAuditEntry>();
+
     // Teams
     public DbSet<TeamListConfig> TeamListConfigs => Set<TeamListConfig>();
     public DbSet<TeamActivityPolicy> TeamActivityPolicies => Set<TeamActivityPolicy>();
@@ -123,6 +128,32 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.GuildId, x.ChannelId }).IsUnique();
             entity.HasIndex(x => x.GuildId);
+        });
+
+        modelBuilder.Entity<AutoModerationConfig>(entity =>
+        {
+            entity.HasKey(x => x.GuildId);
+            entity.Property(x => x.GuildId).ValueGeneratedNever();
+            entity.HasIndex(x => x.LogChannelId);
+            entity.HasIndex(x => x.IsEnabled);
+        });
+
+        modelBuilder.Entity<AutoModerationRaidIncident>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.GuildId);
+            entity.HasIndex(x => new { x.GuildId, x.StartedAtUtc });
+            entity.HasIndex(x => new { x.GuildId, x.EndedAtUtc });
+        });
+
+        modelBuilder.Entity<AutoModerationAuditEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Action).HasConversion<int>();
+            entity.HasIndex(x => x.GuildId);
+            entity.HasIndex(x => new { x.GuildId, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.GuildId, x.UserId, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.GuildId, x.RuleKey, x.CreatedAtUtc });
         });
 
         modelBuilder.Entity<UserBirthday>(entity =>

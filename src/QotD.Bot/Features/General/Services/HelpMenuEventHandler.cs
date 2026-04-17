@@ -120,6 +120,14 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 sb.AppendLine("> **`/linkfilter ruleadd <domain>`** / **`ruleremove <domain>`** / **`rules`** - Manage domain rules.");
                 sb.AppendLine("> **`/linkfilter bypassroleadd/remove/list`** - Manage bypass roles.");
                 sb.AppendLine("> **`/linkfilter bypasschanneladd/remove/list`** - Manage bypass channels.");
+                sb.AppendLine("");
+                sb.AppendLine("> **`/automod status`** - Show raid mode and age-gate status.");
+                sb.AppendLine("> **`/automod enable`** / **`disable`** - Toggle global automod (Admin).");
+                sb.AppendLine("> **`/automod raidsettings <joins> <windowSec> <durationMin>`** - Configure raid trigger (Admin).");
+                sb.AppendLine("> **`/automod verifiedrole [role]`** - Set or clear verified role for lockdown posting (Admin).");
+                sb.AppendLine("> **`/automod lockdownrules <verifiedOnly> <minAccountAgeHours>`** - Strict lockdown posting rules (Admin).");
+                sb.AppendLine("> **`/automod gates <enforceAccount> <days> <enforceServer> <hours>`** - Account/server age gates for links (Admin).");
+                sb.AppendLine("> **`/automod audit [count]`** - Show recent automod audit entries (Admin).");
                 break;
 
             case "qotd":
