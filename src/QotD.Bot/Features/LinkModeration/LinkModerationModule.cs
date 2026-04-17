@@ -19,6 +19,8 @@ public sealed class LinkModerationModule : IBotModule
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
+        services.AddScoped<LinkModerationService>();
+
         var handler = hostProvider.GetRequiredService<LinkModerationEventHandler>();
         services.AddSingleton(handler);
         services.AddSingleton<IEventHandler<MessageCreatedEventArgs>>(handler);

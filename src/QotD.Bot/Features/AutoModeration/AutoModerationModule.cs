@@ -19,6 +19,8 @@ public sealed class AutoModerationModule : IBotModule
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
+        services.AddScoped<AutoModerationService>();
+
         var handler = hostProvider.GetRequiredService<AutoModerationEventHandler>();
         services.AddSingleton(handler);
         services.AddSingleton<IEventHandler<GuildMemberAddedEventArgs>>(handler);
