@@ -27,6 +27,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<TeamWarning> TeamWarnings => Set<TeamWarning>();
     public DbSet<TeamWarningNote> TeamWarningNotes => Set<TeamWarningNote>();
     public DbSet<TeamLeaveEntry> TeamLeaveEntries => Set<TeamLeaveEntry>();
+    public DbSet<GuildIpBanEntry> GuildIpBanEntries => Set<GuildIpBanEntry>();
 
     // Birthdays
     public DbSet<UserBirthday> UserBirthdays => Set<UserBirthday>();
@@ -153,6 +154,16 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.GuildId, x.UserId, x.StartUtc });
             entity.HasIndex(x => new { x.GuildId, x.UserId, x.EndUtc });
+        });
+
+        modelBuilder.Entity<GuildIpBanEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.IpHash }).IsUnique();
+            entity.HasIndex(x => x.GuildId);
+            entity.Property(x => x.IpHash).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.MaskedIp).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(500);
         });
     }
 }
