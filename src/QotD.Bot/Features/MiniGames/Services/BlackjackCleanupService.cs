@@ -17,8 +17,8 @@ public sealed class BlackjackCleanupService(
         {
             try
             {
-                blackjackService.CleanupStaleGames(TimeSpan.FromMinutes(10));
-                towerService.CleanupStaleGames(TimeSpan.FromMinutes(10));
+                blackjackService.CleanupStaleGames(TimeSpan.FromMinutes(5));
+                towerService.CleanupStaleGames(TimeSpan.FromMinutes(5));
                 eventHandler.CleanupUnusedLocks();
             }
             catch (Exception ex)

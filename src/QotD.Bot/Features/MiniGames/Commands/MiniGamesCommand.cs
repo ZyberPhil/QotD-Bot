@@ -170,7 +170,14 @@ public class BlackjackCommands
     public async ValueTask PlayAsync(CommandContext ctx, 
         [Description("Dein Einsatz (Coins)")] int bet = 0)
     {
-        var userLock = _blackjackService.GetLock(ctx.User.Id);
+        if (ctx.Guild is null)
+        {
+            await ctx.RespondAsync("Dieser Befehl kann nur in einem Server verwendet werden.");
+            return;
+        }
+
+        var guildId = ctx.Guild.Id;
+        var userLock = _blackjackService.GetLock(guildId, ctx.User.Id);
         await userLock.WaitAsync();
 
         try
@@ -191,7 +198,7 @@ public class BlackjackCommands
                 }
             }
 
-            var game = _blackjackService.StartGame(ctx.User.Id, bet);
+            var game = _blackjackService.StartGame(guildId, ctx.User.Id, bet);
             
             // First response: Player's first card
             _blackjackService.DealToPlayer(game);
@@ -226,7 +233,7 @@ public class BlackjackCommands
 
             if (game.Status != GameStatus.Playing)
             {
-                _blackjackService.EndGame(ctx.User.Id);
+                _blackjackService.EndGame(guildId, ctx.User.Id);
             }
         }
         catch (Exception)

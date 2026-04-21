@@ -12,6 +12,15 @@ public static class BotPromptTokens
     public const string MemberCount = "{member_count}";
     public const string MembersList = "{members_list}";
 
+    public const string SelfRoleEmoji = "{emoji}";
+    public const string SelfRoleLabel = "{label}";
+    public const string SelfRoleDescription = "{description}";
+    public const string SelfRoleGroupName = "{group_name}";
+    public const string SelfRoleDisplayOrder = "{display_order}";
+    public const string SelfRoleTotalRoles = "{total_roles}";
+    public const string SelfRoleAllowMultiple = "{allow_multiple}";
+    public const string SelfRoleModeration = "{moderation}";
+
     // Legacy placeholders kept for backward compatibility.
     public const string LegacyMessage = "{message}";
     public const string LegacyId = "{id}";
@@ -53,5 +62,35 @@ public static class BotPromptTokens
             .Replace(LegacyRank, roleMention)
             .Replace(LegacyCount, memberCount)
             .Replace(LegacyText, membersList);
+    }
+
+    public static string ApplySelfRoleTemplate(
+        string template,
+        string emoji,
+        string label,
+        string roleName,
+        string roleMention,
+        string description,
+        string groupName,
+        string displayOrder,
+        string totalRoles,
+        string allowMultiple,
+        string moderation)
+    {
+        return template
+            .Replace(SelfRoleEmoji, emoji)
+            .Replace(SelfRoleLabel, label)
+            .Replace(SelfRoleDescription, description)
+            .Replace(SelfRoleGroupName, groupName)
+            .Replace(SelfRoleDisplayOrder, displayOrder)
+            .Replace(SelfRoleTotalRoles, totalRoles)
+            .Replace(SelfRoleAllowMultiple, allowMultiple)
+            .Replace(SelfRoleModeration, moderation)
+            .Replace(RoleName, roleName)
+            .Replace(RoleMention, roleMention)
+            .Replace(LegacyRoleName, roleName)
+            .Replace(LegacyRoleMention, roleMention)
+            .Replace(LegacyText, description)
+            .Replace(LegacyCount, totalRoles);
     }
 }

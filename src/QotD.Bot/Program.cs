@@ -11,6 +11,10 @@ using QotD.Bot.Features.General.Models;
 using QotD.Bot.Features.Leveling;
 using QotD.Bot.Features.Leveling.Data;
 using QotD.Bot.Features.Leveling.Services;
+using QotD.Bot.Features.AutoModeration;
+using QotD.Bot.Features.AutoModeration.Services;
+using QotD.Bot.Features.LinkModeration;
+using QotD.Bot.Features.LinkModeration.Services;
 using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Features.MiniGames.Services;
@@ -38,7 +42,10 @@ try
         new QotD.Bot.Features.MiniGames.MiniGamesModule(),
         new QotD.Bot.Features.Logging.LoggingModule(),
         new QotD.Bot.Features.Teams.TeamsModule(),
-        new QotD.Bot.Features.Birthdays.BirthdaysModule()
+        new QotD.Bot.Features.SelfRoles.SelfRolesModule(),
+        new QotD.Bot.Features.Birthdays.BirthdaysModule(),
+        new AutoModerationModule(),
+        new LinkModerationModule()
     ];
 
     // ── Configuration ──────────────────────────────────────────────────────────
@@ -105,7 +112,7 @@ try
 
     builder.Services.AddSingleton(s =>
     {
-        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents)
+        return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents | DiscordIntents.GuildMessageReactions)
             .ConfigureServices(services =>
             {
                 services.AddDbContext<AppDbContext>(options =>
@@ -125,12 +132,15 @@ try
                 }
             })
             .ConfigureEventHandlers(b => b.AddEventHandlers([
+                typeof(LinkModerationEventHandler),
+                typeof(AutoModerationEventHandler),
                 typeof(MiniGamesEventHandler), 
                 typeof(QotD.Bot.Features.Logging.Services.LogSetupEventHandler), 
                 typeof(QotD.Bot.Features.Logging.Services.DiscordLoggingEventHandler), 
                 typeof(QotD.Bot.Features.General.Services.HelpMenuEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamSetupEventHandler),
                 typeof(QotD.Bot.Features.Teams.Services.TeamListEventHandler),
+                typeof(QotD.Bot.Features.SelfRoles.Services.SelfRoleEventHandler),
                 typeof(QotD.Bot.Features.TempVoice.Services.TempVoiceEventHandler),
                 typeof(LevelingEventHandler)
             ]))

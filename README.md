@@ -1,233 +1,403 @@
-# 🤖 QotD Bot — Question of the Day Discord Bot
+# QotD Bot
 
-A Discord bot that automatically posts a **Question of the Day** to a configured channel at a scheduled time, built with **.NET 9**, **DSharpPlus v5**, **PostgreSQL**, and **Docker**.
+Ein modularer Discord-Bot auf Basis von .NET 9, DSharpPlus v5 und PostgreSQL.
+Der Bot bietet weit mehr als Question of the Day und ist in mehrere Features aufgeteilt, die pro Server konfigurierbar sind.
 
----
+## Inhalt
 
-## ✨ Features
+1. Projektstatus
+2. Tech Stack
+3. Features im Ueberblick
+4. Quick Start mit Docker
+5. Lokale Entwicklung ohne Docker
+6. Konfiguration
+7. Befehlsreferenz
+8. Architektur und Projektstruktur
+9. API Endpoints
+10. Deployment und Betrieb
+11. Datenbank und Migrationen
+12. Troubleshooting
 
-- 📅 **Per-Server Scheduling** — each server can configure its own channel and post time
-- 💾 **PostgreSQL persistence** — questions and server settings are stored in a database
-- 🔧 **Admin slash commands** — unified `/qotd` command group for configuration and management
-- 🧱 **Modular Architecture** — Easily add new features (like TempVoice) by implementing `IBotModule`
-- 🐳 **Docker-first** — full `docker-compose.yml` setup, multi-stage build
-- 🚀 **Modern CI/CD** — SSH-free deployment via self-hosted GitHub runner
+## Projektstatus
 
----
+- Ziel: Multi-Feature Community Bot mit sauberer Modularchitektur
+- Laufzeit: .NET 9
+- Datenhaltung: PostgreSQL (EF Core)
+- Aktueller Stand Minigames:
+  - Sessions fuer Blackjack und Tower sind server-spezifisch
+  - Inaktive Spiele werden nach 5 Minuten automatisch beendet
+  - Cleanup-Intervall laeuft alle 1 Minute
 
-## 🚀 Quick Start (Local)
+## Tech Stack
 
-### Prerequisites
+- .NET 9 (ASP.NET Core Host + Background Services)
+- DSharpPlus 5 nightly (Commands, Interactivity, Event Handling)
+- Entity Framework Core 9 + Npgsql
+- Serilog (Console + File)
+- SkiaSharp/Svg.Skia fuer Blackjack-Rendering
+- Docker + Docker Compose fuer Deployment
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- A [Discord Bot Token](https://discord.com/developers/applications)
+## Features im Ueberblick
 
-### 1. Clone & configure
+### QotD
+
+- Geplante Tagesfragen pro Server
+- Konfigurierbare Zielchannel, Zeit, Ping-Rolle, Posting-Template
+- Manuelle Test-Posts
+
+### Minigames
+
+- Counting Channel
+- Word Chain
+- Blackjack
+- Tower
+- Session-/Lock-Scoping pro Server fuer Blackjack und Tower
+- Auto-Cleanup inaktiver Sessions nach 5 Minuten
+
+### Leveling
+
+- XP/Level pro Server
+- Rank und Leaderboard
+- Konfigurierbare Level-Up Benachrichtigungen
+- Voice-XP Konfiguration
+
+### Link Moderation
+
+- Whitelist/Blacklist Modi
+- Regelverwaltung, Bypass-Rollen, Bypass-Channels
+- Logchannel und Warnverhalten
+
+### Teams
+
+- Teamstatistiken und Rankings
+- Mindestaktivitaet, Reports, Warnings, Role-History
+- Leave-Tracking und Verlauf
+- Teamsetup fuer dynamische Teamlisten
+
+### Self Roles
+
+- Self-Role Panel
+- Gruppen, Optionen, Publish/Status
+- Moderierte oder direkte Vergabe
+
+### Birthdays
+
+- User Geburtstage setzen/entfernen
+- Serverweite Birthday-Konfiguration
+
+### Temp Voice
+
+- Trigger-Channel erzeugt temporaere Voice-Channels
+- Rename, Limit, Lock/Unlock
+
+### Logging und General
+
+- Logrouting-Konfiguration
+- Hilfemenue und Investigate Command
+- Stats API
+
+## Quick Start mit Docker
+
+### Voraussetzungen
+
+- Docker und Docker Compose
+- Discord Bot Token
+
+### 1) Repository klonen
 
 ```bash
 git clone https://github.com/YOUR_USER/QotD-Bot.git
 cd QotD-Bot
-cp .env.example .env
-# Edit .env with your values
 ```
 
-### 2. Fill in `.env`
+### 2) Umgebungsdatei anlegen
+
+```bash
+cp .env.example .env
+```
+
+Beispielwerte in .env:
 
 ```env
 DISCORD_TOKEN=your_bot_token_here
-DISCORD_GUILD_ID=123456789012345678    # Your server ID
-DISCORD_CHANNEL_ID=123456789012345678  # Target channel ID
-POST_TIME=07:00                        # 24-hour HH:mm in configured timezone
+DISCORD_GUILD_ID=123456789012345678
+DISCORD_CHANNEL_ID=123456789012345678
+POST_TIME=07:00
 TIMEZONE=Europe/Berlin
-POSTGRES_PASSWORD=change_me
+POSTGRES_PASSWORD=change_me_to_a_strong_password
 ```
 
-### 3. Run
+### 3) Starten
 
 ```bash
 docker compose up -d
 docker compose logs -f qotd-bot
 ```
 
-The bot will auto-apply database migrations on startup.
+Hinweis:
+- Datenbankmigrationen werden beim Start automatisch ausgefuehrt.
 
----
+## Lokale Entwicklung ohne Docker
 
-## 🗄️ Database Schema
+### Voraussetzungen
 
-| Column | Type | Description |
+- .NET 9 SDK
+- PostgreSQL Instanz
+
+### Start
+
+```bash
+dotnet restore src/QotD.Bot/QotD.Bot.csproj
+dotnet build src/QotD.Bot/QotD.Bot.csproj
+dotnet run --project src/QotD.Bot/QotD.Bot.csproj
+```
+
+### Nuetzliche Befehle
+
+```bash
+dotnet ef migrations add <MigrationName> --project src/QotD.Bot --output-dir Data/Migrations
+dotnet ef database update --project src/QotD.Bot
+```
+
+## Konfiguration
+
+Der Bot liest Konfiguration aus:
+
+1. appsettings.json
+2. appsettings.{Environment}.json
+3. Environment Variables
+
+Wichtige Keys:
+
+| Key | Environment Variable | Beschreibung |
 |---|---|---|
-| `Id` | `int` | Auto-increment primary key |
-| `QuestionText` | `varchar(2000)` | The question content |
-| `ScheduledFor` | `date` | Date to post (unique constraint) |
-| `Posted` | `bool` | Whether the question has been sent |
-| `CreatedAt` | `timestamptz` | Creation timestamp |
+| Discord:Token | Discord__Token | Discord Bot Token |
+| Discord:GuildId | Discord__GuildId | Default Guild ID (Bootstrap) |
+| Discord:ChannelId | Discord__ChannelId | Default Channel ID (Bootstrap) |
+| Scheduling:PostTime | Scheduling__PostTime | Standard Postzeit HH:mm |
+| Scheduling:Timezone | Scheduling__Timezone | IANA Timezone |
+| ConnectionStrings:Postgres | ConnectionStrings__Postgres | PostgreSQL Verbindungsstring |
 
----
+Wichtig:
+- Server-spezifische Laufzeitkonfiguration wird ueber Commands in der Datenbank gespeichert.
+- Die Discord GuildId/ChannelId in der globalen Config dienen als Default/Bootstrap und nicht als hartes Multi-Server-Limit.
 
-## 🔧 Slash Commands
+## Befehlsreferenz
 
-| Command | Description | Permission |
-|---|---|---|
-| `/qotd config channel` | Set the channel for daily questions | Manage Server |
-| `/qotd config time` | Set the daily post time (HH:mm) | Manage Server |
-| `/qotd add date text` | Schedule a new question for a specific date | Manage Server |
-| `/qotd list` | List upcoming unposted questions | Manage Server |
-| `/qotd config test` | Trigger a test post and thread creation | Manage Server |
-| `/investigate user` | Start an analysis of the specified subject | — |
-| `/help` | Display the botanical guide/help menu | — |
+Die wichtigsten Commands nach Feature:
 
-### Example
+### QotD
 
-```
-/qotd add date:2026-03-07 text:What is your favourite programming language?
-```
+- qotd list
+- qotd add
+- qotd edit
+- qotd delete
+- qotd config channel
+- qotd config time
+- qotd config role
+- qotd config template
+- qotd config show
+- qotd config reset
+- qotd config test
 
----
+### Minigames
 
-## 🧩 Template Placeholder Standard
+- counting setup
+- counting reset
+- wordchain setup
+- wordchain reset
+- blackjack
+- tower
 
-The bot now supports a unified placeholder style with snake_case tokens.
-Legacy placeholders are still accepted for backward compatibility.
+### Leveling
 
-### QotD Template
+- rank
+- leaderboard
+- levelingsetup setchannel
+- levelingsetup disablenotifications
+- levelingsetup voiceconfig
+- levelingsetup setbanner
+- levelingsetup clearbanner
 
-- Preferred: `{question}`, `{date}`, `{question_id}`
-- Legacy (still supported): `{message}`, `{date}`, `{id}`
+### Link Moderation
 
-### Team List Template
+- linkfilter status
+- linkfilter enable
+- linkfilter disable
+- linkfilter mode
+- linkfilter logchannel
+- linkfilter dmwarn
+- linkfilter channelwarn
+- linkfilter ruleadd
+- linkfilter ruleremove
+- linkfilter rules
+- linkfilter bypassroleadd
+- linkfilter bypassroleremove
+- linkfilter bypassroles
+- linkfilter bypasschanneladd
+- linkfilter bypasschannelremove
+- linkfilter bypasschannels
 
-- Preferred: `{role_name}`, `{role_mention}`, `{member_count}`, `{members_list}`
-- Legacy (still supported): `{RoleName}`, `{RoleMention}`, `{MemberCount}`, `{MembersList}`, `{rank}`, `{count}`, `{text}`
+### Teams
 
-Compatibility is handled in code via centralized token replacement helpers in the UI layer.
+- team me
+- team ranking
+- team minima
+- team reportsetup
+- team reportdisable
+- team warnings
+- team rolehistory
+- team warningsadd
+- team warningsremove
+- team leavestart
+- team leaveend
+- team leavestats
+- team leavehistory
+- team warningsnote lead
+- team warningsnote statement
+- team warningsnote resolve
+- team warningsnote list
+- teamsetup
 
----
+### Self Roles
 
-## 🏗️ Project Structure
+- selfrolesetup status
+- selfrolesetup panel
+- selfrolesetup group
+- selfrolesetup optionadd
+- selfrolesetup optionremove
+- selfrolesetup publish
 
-```
+### Birthdays
+
+- birthday set
+- birthday remove
+- birthdaysetup
+
+### Temp Voice
+
+- voice setup
+- voice rename
+- voice limit
+- voice lock
+- voice unlock
+
+### General
+
+- help
+- investigate
+- logsetup
+
+## Architektur und Projektstruktur
+
+Der Bot folgt einer modularen Architektur ueber IBotModule. Module werden zentral in Program.cs registriert.
+
+Aktive Module:
+
+- GeneralModule
+- LevelingModule
+- QotDModule
+- TempVoiceModule
+- MiniGamesModule
+- LoggingModule
+- TeamsModule
+- SelfRolesModule
+- BirthdaysModule
+- LinkModerationModule
+
+Projektstruktur:
+
+```text
 QotD-Bot/
 ├── src/QotD.Bot/
-│   ├── Core/              # Module infrastructure (IBotModule)
-│   ├── Features/          # Feature-based isolation
-│   │   ├── QotD/          # QotD Logic (Commands, Services)
-│   │   ├── General/       # Shared commands (Help, Investigate)
-│   │   └── TempVoice/     # Skeleton for future features
-│   ├── Configuration/     # Strongly-typed settings POCOs
-│   ├── Data/              # EF Core DbContext + shared models
-│   ├── Services/          # Core bot connectivity services
-│   ├── UI/                # Shared UI templates & design system
-│   ├── Program.cs         # Modular bot initialization
+│   ├── Core/
+│   ├── Configuration/
+│   ├── Data/
+│   ├── Features/
+│   │   ├── Birthdays/
+│   │   ├── Economy/
+│   │   ├── General/
+│   │   ├── Leveling/
+│   │   ├── LinkModeration/
+│   │   ├── Logging/
+│   │   ├── MiniGames/
+│   │   ├── QotD/
+│   │   ├── SelfRoles/
+│   │   ├── Teams/
+│   │   └── TempVoice/
+│   ├── Services/
+│   ├── UI/
+│   ├── Program.cs
 │   ├── appsettings.json
 │   └── appsettings.Production.json
-├── Dockerfile
 ├── docker-compose.yml
-├── NuGet.Config           # Adds DSharpPlus nightly feed
-└── .github/workflows/
-    └── deploy.yml         # CI/CD pipeline
+├── Dockerfile
+├── SERVER_SETUP.md
+└── .env.example
 ```
 
----
+## API Endpoints
 
-## ⚙️ Configuration Reference
+### GET /api/stats
 
-| Key | Environment Variable | Default | Description |
-|---|---|---|---|
-| `Discord:Token` | `Discord__Token` | — | Bot token (**required**) |
-| `Discord:GuildId` | `Discord__GuildId` | — | Target guild ID (**required**) |
-| `Discord:ChannelId` | `Discord__ChannelId` | — | Target channel ID (**required**) |
-| `Scheduling:PostTime` | `Scheduling__PostTime` | `07:00` | Daily post time (HH:mm) |
-| `Scheduling:Timezone` | `Scheduling__Timezone` | `Europe/Berlin` | IANA timezone |
-| `ConnectionStrings:Postgres` | `ConnectionStrings__Postgres` | — | Postgres connection string |
+Liefert aggregierte Bot-Statistiken (mit kurzem Cache):
 
----
+- totalQuestions
+- totalGuilds
+- totalAnswers
+- activeMiniGames
 
-## 🚀 CI/CD — GitHub Actions
+## Deployment und Betrieb
 
-The workflow (`.github/workflows/deploy.yml`) triggers on push to `main`:
+### Docker Compose
 
-1. Builds & pushes the Docker image to **GitHub Container Registry** (ghcr.io)
-2. Triggers the **self-hosted runner** on your server to update the container (no SSH required!)
+Enthaltene Services:
 
-### Required GitHub Secrets
+- qotd-bot
+- postgres
 
-| Secret | Description |
-|---|---|
-| `DISCORD_TOKEN` | Bot token |
-| `POSTGRES_PASSWORD` | Strong database password |
-| `DISCORD_GUILD_ID` | (Optional) Default Guild ID |
-| `DISCORD_CHANNEL_ID` | (Optional) Default Channel ID |
-| `POST_TIME` | (Optional) Default post time |
+### Self-hosted Runner Deployment
 
-### Server Setup (one-time)
+Eine ausfuehrliche Schritt-fuer-Schritt-Anleitung liegt in SERVER_SETUP.md.
+
+Kurzfassung:
+
+1. Runner auf dem Zielserver installieren
+2. GitHub Secrets setzen
+3. Push auf main startet Build/Deploy Workflow
+
+## Datenbank und Migrationen
+
+- Hauptkontext: AppDbContext
+- Separater Kontext fuer Leveling: LevelDatabaseContext
+- Beide Kontexte werden beim Start migriert
+
+Wichtig fuer EF CLI:
+
+- Bei Migrationen fuer den Bot-Kontext immer den richtigen Kontext verwenden, wenn noetig explizit mit --context AppDbContext.
+
+## Troubleshooting
+
+### Bot startet nicht
+
+- Pruefe DISCORD_TOKEN und ConnectionStrings
+- Pruefe Container Logs:
 
 ```bash
-# On your Ubuntu 24.04 server:
-sudo mkdir -p /opt/qotd-bot
-sudo chown $USER:$USER /opt/qotd-bot
-# Copy docker-compose.yml to /opt/qotd-bot/
+docker compose logs -f qotd-bot
 ```
 
----
+### Commands erscheinen nicht
 
-### 🧩 Adding New Features
+- Bot-Rechte und OAuth2 Scopes pruefen
+- Sicherstellen, dass Bot im Server ist
+- Nach Neustart kurz auf Command-Sync warten
 
-The bot uses a modular architecture. To add a new feature (e.g., `TempVoice`):
+### Minigame Session wirkt weg
 
-1. Create a folder `src/QotD.Bot/Features/NewFeature`.
-2. Implement the `IBotModule` interface:
-   ```csharp
-   public class NewFeatureModule : IBotModule {
-       public void ConfigureServices(IServiceCollection services, IConfiguration config) { ... }
-       public void ConfigureCommands(CommandsExtension commands) { ... }
-   }
-   ```
-3. Add `new NewFeatureModule()` to the `modules` array in `Program.cs`.
+- Sessions werden nach 5 Minuten Inaktivitaet automatisch geschlossen
+- Das ist erwartetes Verhalten
 
----
+## Lizenz
 
-### Running locally without Docker
-
-1. Install [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-2. Start a local Postgres instance
-3. Set environment variables or edit `appsettings.json`
-4. Create the initial migration (first-time only):
-
-   ```bash
-   cd src/QotD.Bot
-   dotnet ef migrations add InitialCreate --output-dir Data/Migrations
-   ```
-
-5. Run:
-
-   ```bash
-   dotnet run --project src/QotD.Bot
-   ```
-
-### Adding EF Core migrations
-
-```bash
-dotnet ef migrations add <MigrationName> \
-  --project src/QotD.Bot \
-  --output-dir Data/Migrations
-```
-
----
-
-## 📝 Discord Developer Portal Setup
-
-1. Go to [discord.com/developers](https://discord.com/developers/applications)
-2. Create an application → **Bot** tab → Enable:
-   - ✅ **Server Members Intent** (if needed)
-   - *Note: "Message Content Intent" is NOT required for slash commands*
-3. Under **OAuth2 → URL Generator**:
-   - Scopes: `bot`, `applications.commands`
-   - Permissions: `Send Messages`, `Embed Links`
-4. Copy the invite URL and add the bot to your server.
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
+MIT. Details in LICENSE.

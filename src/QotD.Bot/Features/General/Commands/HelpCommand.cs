@@ -2,6 +2,7 @@ using DSharpPlus.Commands;
 using DSharpPlus.Entities;
 using QotD.Bot.Features.General.Services;
 using QotD.Bot.UI;
+using System.Reflection;
 
 namespace QotD.Bot.Features.General.Commands;
 
@@ -11,11 +12,13 @@ public sealed class HelpCommand
     [System.ComponentModel.Description("Displays the interactive help dashboard.")]
     public async ValueTask ExecuteAsync(CommandContext ctx)
     {
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "dev";
+
         var embed = new DiscordEmbedBuilder()
             .WithFeatureTitle("Help", "Dashboard", "📖")
             .WithDescription("Use the dropdown menu below to switch categories and review the available commands.")
             .WithColor(SectorUI.SectorPrimary)
-            .WithFeatureFooter("Help", "v1.1.0")
+            .WithFeatureFooter("Help", $"v{version}")
             .WithTimestamp(DateTimeOffset.UtcNow);
 
         await ctx.RespondAsync(new DiscordInteractionResponseBuilder()

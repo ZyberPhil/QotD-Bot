@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QotD.Bot.Data;
@@ -11,9 +12,11 @@ using QotD.Bot.Data;
 namespace QotD.Bot.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260416063650_AddLinkModeration")]
+    partial class AddLinkModeration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,165 +24,6 @@ namespace QotD.Bot.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.AutoModerationAuditEntry", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("Action")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("ChannelId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Evidence")
-                        .HasMaxLength(1800)
-                        .HasColumnType("character varying(1800)");
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal?>("MessageId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("RuleKey")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<decimal?>("UserId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GuildId");
-
-                    b.HasIndex("GuildId", "CreatedAtUtc");
-
-                    b.HasIndex("GuildId", "RuleKey", "CreatedAtUtc");
-
-                    b.HasIndex("GuildId", "UserId", "CreatedAtUtc");
-
-                    b.ToTable("AutoModerationAuditEntries");
-                });
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.AutoModerationConfig", b =>
-                {
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("EnforceAccountAgeForLinks")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("EnforceServerAgeForLinks")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsLockdownActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LockdownActivatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("LockdownEndsAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("LockdownMinAccountAgeHours")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("LogChannelId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<int>("MinAccountAgeDaysForLinks")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MinServerAgeHoursForLinks")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaidJoinThreshold")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaidLockdownMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("RaidModeEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("RaidWindowSeconds")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("RestrictToVerifiedRoleDuringLockdown")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal?>("VerifiedRoleId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.HasKey("GuildId");
-
-                    b.HasIndex("IsEnabled");
-
-                    b.HasIndex("LogChannelId");
-
-                    b.ToTable("AutoModerationConfigs");
-                });
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.AutoModerationRaidIncident", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset?>("EndedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(400)
-                        .HasColumnType("character varying(400)");
-
-                    b.Property<DateTimeOffset>("StartedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("TriggerJoinCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WindowSeconds")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GuildId");
-
-                    b.HasIndex("GuildId", "EndedAtUtc");
-
-                    b.HasIndex("GuildId", "StartedAtUtc");
-
-                    b.ToTable("AutoModerationRaidIncidents");
-                });
 
             modelBuilder.Entity("QotD.Bot.Data.Models.BirthdayConfig", b =>
                 {
@@ -409,47 +253,6 @@ namespace QotD.Bot.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("LinkFilterRules");
-                });
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.GuildIpBanEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("CreatedByUserId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<string>("IpHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("MaskedIp")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GuildId");
-
-                    b.HasIndex("GuildId", "IpHash")
-                        .IsUnique();
-
-                    b.ToTable("GuildIpBanEntries");
                 });
 
             modelBuilder.Entity("QotD.Bot.Data.Models.LogRoutingConfig", b =>

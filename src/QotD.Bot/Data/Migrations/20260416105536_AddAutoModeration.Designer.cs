@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QotD.Bot.Data;
@@ -11,9 +12,11 @@ using QotD.Bot.Data;
 namespace QotD.Bot.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260416105536_AddAutoModeration")]
+    partial class AddAutoModeration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -409,47 +412,6 @@ namespace QotD.Bot.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("LinkFilterRules");
-                });
-
-            modelBuilder.Entity("QotD.Bot.Data.Models.GuildIpBanEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("CreatedByUserId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<string>("IpHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("MaskedIp")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GuildId");
-
-                    b.HasIndex("GuildId", "IpHash")
-                        .IsUnique();
-
-                    b.ToTable("GuildIpBanEntries");
                 });
 
             modelBuilder.Entity("QotD.Bot.Data.Models.LogRoutingConfig", b =>

@@ -9,8 +9,8 @@ namespace QotD.Bot.Features.MiniGames.Services;
 
 public class TowerService
 {
-    private readonly ConcurrentDictionary<ulong, TowerGame> _activeGames = new();
-    private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _userLocks = new();
+    private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), TowerGame> _activeGames = new();
+    private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), SemaphoreSlim> _userLocks = new();
     private readonly ILogger<TowerService> _logger;
 
     public TowerService(ILogger<TowerService> logger)
@@ -18,21 +18,21 @@ public class TowerService
         _logger = logger;
     }
 
-    public SemaphoreSlim GetLock(ulong userId)
+    public SemaphoreSlim GetLock(ulong guildId, ulong userId)
     {
-        return _userLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+        return _userLocks.GetOrAdd((guildId, userId), _ => new SemaphoreSlim(1, 1));
     }
 
-    public TowerGame StartGame(ulong userId, int bet)
+    public TowerGame StartGame(ulong guildId, ulong userId, int bet)
     {
         var game = new TowerGame(userId, bet, floorCount: 8);
-        _activeGames[userId] = game;
+        _activeGames[(guildId, userId)] = game;
         return game;
     }
 
-    public TowerGame? GetGame(ulong userId)
+    public TowerGame? GetGame(ulong guildId, ulong userId)
     {
-        if (_activeGames.TryGetValue(userId, out var game))
+        if (_activeGames.TryGetValue((guildId, userId), out var game))
         {
             game.LastActivity = DateTimeOffset.UtcNow;
             return game;
@@ -67,37 +67,37 @@ public class TowerService
         game.Status = TowerStatus.CashedOut;
     }
 
-    public void EndGame(ulong userId)
+    public void EndGame(ulong guildId, ulong userId)
     {
-        _activeGames.TryRemove(userId, out _);
+        _activeGames.TryRemove((guildId, userId), out _);
     }
 
     public void CleanupStaleGames(TimeSpan timeout)
     {
         var now = DateTimeOffset.UtcNow;
-        var staleUserIds = _activeGames
+        var staleGameKeys = _activeGames
             .Where(kvp => now - kvp.Value.LastActivity > timeout)
             .Select(kvp => kvp.Key)
             .ToList();
 
-        foreach (var userId in staleUserIds)
+        foreach (var key in staleGameKeys)
         {
-            if (_activeGames.TryRemove(userId, out _))
+            if (_activeGames.TryRemove(key, out _))
             {
-                _logger.LogInformation("Cleaned up stale Tower game for user {UserId}.", userId);
+                _logger.LogInformation("Cleaned up stale Tower game for user {UserId} in guild {GuildId}.", key.UserId, key.GuildId);
             }
         }
 
-        var unusedLockUserIds = _userLocks
+        var unusedLockKeys = _userLocks
             .Where(kvp => kvp.Value.CurrentCount > 0)
             .Select(kvp => kvp.Key)
             .ToList();
 
-        foreach (var userId in unusedLockUserIds)
+        foreach (var key in unusedLockKeys)
         {
-            if (_userLocks.TryGetValue(userId, out var semaphore) && semaphore.CurrentCount > 0)
+            if (_userLocks.TryGetValue(key, out var semaphore) && semaphore.CurrentCount > 0)
             {
-                _userLocks.TryRemove(userId, out _);
+                _userLocks.TryRemove(key, out _);
             }
         }
     }
