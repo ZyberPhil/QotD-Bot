@@ -19,6 +19,7 @@ using QotD.Bot.Features.QotD;
 using QotD.Bot.Features.TempVoice;
 using QotD.Bot.Features.MiniGames.Services;
 using QotD.Bot.Features.Logging.Services;
+using QotD.Bot.Features.Tickets;
 using QotD.Bot.Services;
 using Serilog;
 using Serilog.Events;
@@ -44,6 +45,7 @@ try
         new QotD.Bot.Features.Teams.TeamsModule(),
         new QotD.Bot.Features.SelfRoles.SelfRolesModule(),
         new QotD.Bot.Features.Birthdays.BirthdaysModule(),
+        new TicketsModule(),
         new AutoModerationModule(),
         new LinkModerationModule()
     ];

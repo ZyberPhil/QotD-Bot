@@ -53,6 +53,13 @@ public sealed class AppDbContext : DbContext
     // TempVoice
     public DbSet<TempVoiceConfig> TempVoiceConfigs => Set<TempVoiceConfig>();
 
+    // Tickets
+    public DbSet<TicketConfig> TicketConfigs => Set<TicketConfig>();
+    public DbSet<TicketStaffRole> TicketStaffRoles => Set<TicketStaffRole>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketLogConfig> TicketLogConfigs => Set<TicketLogConfig>();
+    public DbSet<TicketTranscript> TicketTranscripts => Set<TicketTranscript>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -271,6 +278,50 @@ public sealed class AppDbContext : DbContext
             entity.Property(x => x.IpHash).HasMaxLength(64).IsRequired();
             entity.Property(x => x.MaskedIp).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<TicketConfig>(entity =>
+        {
+            entity.HasKey(x => x.GuildId);
+            entity.Property(x => x.GuildId).ValueGeneratedNever();
+            entity.HasIndex(x => x.IsEnabled);
+        });
+
+        modelBuilder.Entity<TicketStaffRole>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.RoleId }).IsUnique();
+            entity.HasOne(x => x.Config)
+                .WithMany(c => c.StaffRoles)
+                .HasForeignKey(x => x.GuildId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Ticket>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Type).HasConversion<int>();
+            entity.Property(x => x.Priority).HasConversion<int>();
+            entity.Property(x => x.Status).HasConversion<int>();
+            entity.HasIndex(x => new { x.GuildId, x.TicketNumber }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.ChannelId }).IsUnique();
+            entity.HasIndex(x => new { x.GuildId, x.CreatedByUserId, x.Status });
+            entity.HasIndex(x => new { x.GuildId, x.Status, x.CreatedAtUtc });
+        });
+
+        modelBuilder.Entity<TicketLogConfig>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EventType).HasConversion<int>();
+            entity.HasIndex(x => new { x.GuildId, x.EventType, x.IsEnabled });
+        });
+
+        modelBuilder.Entity<TicketTranscript>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GuildId, x.TicketId }).IsUnique();
+            entity.Property(x => x.Content).IsRequired();
+            entity.Property(x => x.FileName).HasMaxLength(200).IsRequired();
         });
     }
 }
