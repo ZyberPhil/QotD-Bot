@@ -108,6 +108,18 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
                 sb.AppendLine("> **`/selfrolesetup publish`** - Render or refresh the panel message (Admin).");
                 break;
 
+            case "tickets":
+                embed.WithFeatureTitle("Tickets", "Commands", "🎫");
+                sb.AppendLine("> **`/ticket open [type] [priority] [subject]`** - Open a new ticket channel.");
+                sb.AppendLine("> **`/ticket claim`** - Claim the current ticket as support staff.");
+                sb.AppendLine("> **`/ticket close [reason]`** - Close current ticket and save transcript.");
+                sb.AppendLine("> **`/ticket reopen`** - Reopen the current closed ticket.");
+                sb.AppendLine("> **`/ticketsetup status`** - Show current ticket setup for this server (Admin).");
+                sb.AppendLine("> **`/ticketsetup configure <category> <role> [maxOpen] [slaMinutes]`** - Configure ticket category and staff role (Admin).");
+                sb.AppendLine("> **`/ticketsetup setlog <eventType> <#channel>`** - Route separate ticket log events (Admin).");
+                sb.AppendLine("> Event types for `setlog`: `created`, `claimed`, `closed`, `reopened`, `escalated`.");
+                break;
+
             case "linkmoderation":
                 embed.WithFeatureTitle("Link Moderation", "Commands", "🔗");
                 sb.AppendLine("> **`/linkfilter status`** - Show current link filter settings.");
@@ -148,6 +160,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
             case "admin":
                 embed.WithFeatureTitle("Administration", "Configuration", "⚙️");
                 sb.AppendLine("> **`/logsetup`** - Interactive logging configuration panel.");
+                sb.AppendLine("> **`/ticketsetup status|configure|setlog`** - Ticket setup, limits and separate ticket log routing.");
                 sb.AppendLine("> **`/teamsetup`** - Team roles setup panel.");
                 sb.AppendLine("> **`/team me`** - Your weekly team status.");
                 sb.AppendLine("> **`/team reportsetup`** - Weekly report channel.");
@@ -179,6 +192,7 @@ public sealed class HelpMenuEventHandler : IEventHandler<ComponentInteractionCre
             new("Temp Voice", "voice", "Temporary voice channel controls", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🔊"))),
             new("Economy", "economy", "Coins and balances", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("💰"))),
             new("Self Roles", "selfroles", "Self-assignable role panel", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🎭"))),
+            new("Tickets", "tickets", "Support tickets and setup", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🎫"))),
             new("Link Moderation", "linkmoderation", "Automatic link filtering", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("🔗"))),
             new("Question of the Day", "qotd", "QotD scheduling", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("📅"))),
             new("Admin and Config", "admin", "Settings and routing", false, new DiscordComponentEmoji(DiscordEmoji.FromUnicode("⚙️")))
