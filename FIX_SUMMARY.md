@@ -17,7 +17,7 @@
 
 ## Build Status
 
-```
+```text
 Build succeeded.
 0 Errors
 51 Warnings (pre-existing, non-critical)
@@ -28,19 +28,19 @@ Output: QotD.Bot.dll (Debug/net9.0)
 
 To apply these fixes to your running Docker container:
 
-1. **Rebuild Docker image** with the updated source:
+1. Rebuild Docker image with the updated source:
 
 ```bash
 docker build -t qotd-bot:latest .
 ```
 
-2. **Stop the running container**:
+1. Stop the running container:
 
 ```bash
 docker stop qotd-bot
 ```
 
-3. **Start the new container**:
+1. Start the new container:
 
 ```bash
 docker run -d --name qotd-bot qotd-bot:latest

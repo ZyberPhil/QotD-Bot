@@ -13,6 +13,7 @@ All fixes have been **successfully applied and verified**. Your bot source code 
 **Root Cause**: Event handlers were not registered in the Discord client's service collection.
 
 **Solution Applied** (Commit: 549de69):
+
 - Updated `/src/QotD.Bot/Features/Logging/LoggingModule.cs`
 - Registered both `DiscordLoggingEventHandler` and `LogSetupEventHandler` in Discord client DI
 - Registered all 6 event handler interfaces
@@ -24,11 +25,12 @@ All fixes have been **successfully applied and verified**. Your bot source code 
 **Root Cause**: Missing `using DSharpPlus.Clients;` directive in Program.cs
 
 **Solution Applied** (Commit: ffbe9aa):
+
 - Added missing using directive to `/src/QotD.Bot/Program.cs`
 
 ## Build Status
 
-```
+```text
 ✅ Build Succeeded
 ✅ 0 Errors
 ✅ All warnings are pre-existing (non-critical)
@@ -36,7 +38,7 @@ All fixes have been **successfully applied and verified**. Your bot source code 
 
 ## Commits Applied
 
-```
+```text
 993f4e8 (HEAD -> main, origin/main) docs: Add fix summary for DI and compilation errors
 ffbe9aa (origin/main) Fix: Add missing DSharpPlus.Clients using directive to resolve DiscordClientBuilder compilation error
 549de69 Fix: Register logging event handlers in Discord client DI container
