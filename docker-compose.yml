@@ -12,11 +12,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 6G
         reservations:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '1.0'
+          memory: 3G
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       TZ: Europe/Berlin
