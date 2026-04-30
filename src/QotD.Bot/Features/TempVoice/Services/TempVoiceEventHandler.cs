@@ -15,7 +15,7 @@ public sealed class TempVoiceEventHandler :
     IEventHandler<VoiceStateUpdatedEventArgs>,
     IEventHandler<ComponentInteractionCreatedEventArgs>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<TempVoiceEventHandler> _logger;
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
 
@@ -23,9 +23,9 @@ public sealed class TempVoiceEventHandler :
     // Static so tracking survives multiple handler instances in the same process.
     private static readonly ConcurrentDictionary<ulong, ulong> _tempChannels = new();
 
-    public TempVoiceEventHandler(IServiceProvider serviceProvider, ILogger<TempVoiceEventHandler> logger)
+    public TempVoiceEventHandler(IServiceScopeFactory scopeFactory, ILogger<TempVoiceEventHandler> logger)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _logger.LogInformation("TempVoice handler initialized. InstanceId={InstanceId}", _instanceId);
     }
@@ -83,7 +83,7 @@ public sealed class TempVoiceEventHandler :
         // 2. Handle user joining the trigger channel
         if (afterChannelId == 0) return;
 
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var config = await db.TempVoiceConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);

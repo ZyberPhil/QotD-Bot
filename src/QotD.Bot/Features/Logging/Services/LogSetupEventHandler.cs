@@ -13,7 +13,7 @@ namespace QotD.Bot.Features.Logging.Services;
 
 public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCreatedEventArgs>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private static readonly LogType[] ConfigurableLogTypes =
     [
         LogType.MessageDeleted,
@@ -24,9 +24,9 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
         LogType.BotError
     ];
 
-    public LogSetupEventHandler(IServiceProvider serviceProvider)
+    public LogSetupEventHandler(IServiceScopeFactory scopeFactory)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task HandleEventAsync(DiscordClient client, ComponentInteractionCreatedEventArgs e)
@@ -45,7 +45,7 @@ public sealed class LogSetupEventHandler : IEventHandler<ComponentInteractionCre
 
         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
 
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var guildId = e.Interaction.GuildId.Value;

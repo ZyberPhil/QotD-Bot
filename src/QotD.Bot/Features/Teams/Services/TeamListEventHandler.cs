@@ -11,14 +11,14 @@ public sealed class TeamListEventHandler :
     IEventHandler<GuildMemberUpdatedEventArgs>,
     IEventHandler<GuildMemberRemovedEventArgs>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly TeamListService _teamListService;
     private readonly TeamActivityService _teamActivityService;
     private readonly ILogger<TeamListEventHandler> _logger;
 
-    public TeamListEventHandler(IServiceProvider serviceProvider, TeamListService teamListService, TeamActivityService teamActivityService, ILogger<TeamListEventHandler> logger)
+    public TeamListEventHandler(IServiceScopeFactory scopeFactory, TeamListService teamListService, TeamActivityService teamActivityService, ILogger<TeamListEventHandler> logger)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _teamListService = teamListService;
         _teamActivityService = teamActivityService;
         _logger = logger;
@@ -33,7 +33,7 @@ public sealed class TeamListEventHandler :
         // If no roles changed, we don't care
         if (oldRoles.SequenceEqual(newRoles)) return;
 
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == e.Guild.Id);
@@ -72,7 +72,7 @@ public sealed class TeamListEventHandler :
     public async Task HandleEventAsync(DiscordClient client, GuildMemberRemovedEventArgs e)
     {
         // User left the guild, they might have had a tracked role
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == e.Guild.Id);

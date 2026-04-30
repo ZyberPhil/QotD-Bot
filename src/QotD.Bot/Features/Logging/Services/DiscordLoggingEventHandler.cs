@@ -17,12 +17,12 @@ public sealed class DiscordLoggingEventHandler :
     IEventHandler<GuildMemberRemovedEventArgs>,
     IEventHandler<VoiceStateUpdatedEventArgs>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DiscordLoggingEventHandler> _logger;
 
-    public DiscordLoggingEventHandler(IServiceProvider serviceProvider, ILogger<DiscordLoggingEventHandler> logger)
+    public DiscordLoggingEventHandler(IServiceScopeFactory scopeFactory, ILogger<DiscordLoggingEventHandler> logger)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -35,7 +35,7 @@ public sealed class DiscordLoggingEventHandler :
                 return;
             }
 
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             var routingTypes = types.Distinct().ToList();

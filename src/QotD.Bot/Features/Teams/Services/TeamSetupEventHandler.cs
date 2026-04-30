@@ -15,12 +15,12 @@ namespace QotD.Bot.Features.Teams.Services;
 public sealed class TeamSetupEventHandler : 
     IEventHandler<ComponentInteractionCreatedEventArgs>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly TeamListService _teamListService;
 
-    public TeamSetupEventHandler(IServiceProvider serviceProvider, TeamListService teamListService)
+    public TeamSetupEventHandler(IServiceScopeFactory scopeFactory, TeamListService teamListService)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _teamListService = teamListService;
     }
 
@@ -55,7 +55,7 @@ public sealed class TeamSetupEventHandler :
         if (e.Interaction.Data.CustomId == "teamsetup_back")
         {
             await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
-            using (var scope = _serviceProvider.CreateScope())
+            using var scope = _scopeFactory.CreateScope();
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
@@ -66,7 +66,7 @@ public sealed class TeamSetupEventHandler :
 
         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredMessageUpdate);
 
-        using (var scope = _serviceProvider.CreateScope())
+        using (var scope = _scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -105,7 +105,7 @@ public sealed class TeamSetupEventHandler :
     private async Task ShowCustomTextPanelAsync(ComponentInteractionCreatedEventArgs e)
     {
         var guildId = e.Interaction.GuildId!.Value;
-        using (var scope = _serviceProvider.CreateScope())
+        using (var scope = _scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
@@ -176,7 +176,7 @@ public sealed class TeamSetupEventHandler :
         var newValue = msg.Result.Content;
         try { await msg.Result.DeleteAsync(); } catch { }
 
-        using (var scope = _serviceProvider.CreateScope())
+        using (var scope = _scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var config = await db.TeamListConfigs.FirstOrDefaultAsync(c => c.GuildId == guildId);
