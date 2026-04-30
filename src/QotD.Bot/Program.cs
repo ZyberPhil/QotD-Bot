@@ -117,14 +117,7 @@ try
         return DiscordClientBuilder.CreateDefault(discordToken, DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents | DiscordIntents.GuildMessageReactions)
             .ConfigureServices(services =>
             {
-                services.AddDbContext<AppDbContext>(options =>
-                {
-                    options.UseNpgsql(
-                        builder.Configuration.GetConnectionString("Postgres"),
-                        npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
-                });
-
-                // Share essential singletons from the main host provider
+                // Share essential singletons from the main host provider (DbContext already registered in main host)
                 services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
 

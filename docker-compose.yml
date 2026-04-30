@@ -9,6 +9,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       TZ: Europe/Berlin
@@ -19,9 +27,10 @@ services:
       # Scheduling
       Scheduling__PostTime: ${POST_TIME:-07:00}
       Scheduling__Timezone: ${TIMEZONE:-Europe/Berlin}
-      # Database
+      # Database with connection pooling
       ConnectionStrings__Postgres: >-
-        Host=postgres;Port=5432;Database=qotd;Username=qotd;Password=${POSTGRES_PASSWORD}
+        Host=postgres;Port=5432;Database=qotd;Username=qotd;Password=${POSTGRES_PASSWORD};
+        Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Idle Lifetime=300;Connection Lifetime=600
     volumes:
       - ./logs:/app/logs
     networks:
@@ -41,6 +50,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - qotd-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.75'
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U qotd -d qotd"]
       interval: 10s
