@@ -54,10 +54,10 @@ services:
       resources:
         limits:
           cpus: '1.5'
-          memory: 1G
+          memory: 6G
         reservations:
           cpus: '0.75'
-          memory: 512M
+          memory: 3G
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U qotd -d qotd"]
       interval: 10s
