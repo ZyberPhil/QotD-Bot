@@ -37,6 +37,10 @@ public sealed class MiniGamesModule : IBotModule
         services.AddSingleton(hostProvider.GetRequiredService<BlackjackImageService>());
         services.AddSingleton(hostProvider.GetRequiredService<TowerService>());
         services.AddTransient(s => hostProvider.GetRequiredService<EconomyService>());
+        
+        // Register command classes to allow DSharpPlus to inject dependencies
+        services.AddSingleton<CountingCommands>();
+        services.AddSingleton<WordChainCommands>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)

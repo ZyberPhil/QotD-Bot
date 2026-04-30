@@ -18,7 +18,8 @@ public sealed class GeneralModule : IBotModule
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
-        // No extra services needed for general commands
+        // Register command classes with dependencies
+        services.AddScoped<InvestigateCommand>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)

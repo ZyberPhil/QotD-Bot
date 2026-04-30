@@ -23,6 +23,7 @@ public sealed class QotDModule : IBotModule
     {
         services.AddSingleton(hostProvider.GetRequiredService<QotDPostingService>());
         services.AddSingleton(hostProvider.GetRequiredService<ILogger<QotDCommand>>());
+        services.AddSingleton<QotDCommand>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)

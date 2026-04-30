@@ -17,7 +17,9 @@ public sealed class BirthdaysModule : IBotModule
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
     {
-        // No additional discord services needed for now
+        // Register command classes with scoped dependencies
+        services.AddScoped<BirthdayCommands>();
+        services.AddScoped<BirthdaySetupCommands>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)

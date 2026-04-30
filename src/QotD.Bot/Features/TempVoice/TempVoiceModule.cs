@@ -22,6 +22,9 @@ public sealed class TempVoiceModule : IBotModule
         services.AddSingleton(handler);
         services.AddSingleton<IEventHandler<VoiceStateUpdatedEventArgs>>(handler);
         services.AddSingleton<IEventHandler<ComponentInteractionCreatedEventArgs>>(handler);
+        
+        // Register command classes to allow DSharpPlus to inject dependencies
+        services.AddSingleton<TempVoiceCommands>();
     }
 
     public void ConfigureCommands(CommandsExtension commands)
