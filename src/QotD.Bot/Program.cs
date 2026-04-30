@@ -1,4 +1,5 @@
 using DSharpPlus;
+using DSharpPlus.Clients;
 using DSharpPlus.Commands;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
