@@ -14,6 +14,7 @@ public sealed class TempVoiceModule : IBotModule
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<TempVoiceEventHandler>();
+        services.AddSingleton<TempVoiceCommands>();
     }
 
     public void ConfigureDiscordServices(IServiceCollection services, IServiceProvider hostProvider)
@@ -22,9 +23,8 @@ public sealed class TempVoiceModule : IBotModule
         services.AddSingleton(handler);
         services.AddSingleton<IEventHandler<VoiceStateUpdatedEventArgs>>(handler);
         services.AddSingleton<IEventHandler<ComponentInteractionCreatedEventArgs>>(handler);
-        
-        // Register command classes to allow DSharpPlus to inject dependencies
-        services.AddSingleton<TempVoiceCommands>();
+        var commands = hostProvider.GetRequiredService<TempVoiceCommands>();
+        services.AddSingleton(commands);
     }
 
     public void ConfigureCommands(CommandsExtension commands)
