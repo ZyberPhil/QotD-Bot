@@ -20,7 +20,6 @@ public sealed class MiniGamesModule : IBotModule
         services.AddSingleton<BlackjackService>();
         services.AddSingleton<BlackjackImageService>();
         services.AddSingleton<TowerService>();
-        services.AddSingleton<IEconomyService, EconomyService>();
         services.AddSingleton<MiniGamesEventHandler>();
         services.AddHostedService<BlackjackCleanupService>();
     }

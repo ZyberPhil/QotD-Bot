@@ -9,6 +9,7 @@ using QotD.Bot.Core;
 using QotD.Bot.Data;
 using QotD.Bot.Features.General;
 using QotD.Bot.Features.General.Models;
+using QotD.Bot.Features.Economy;
 using QotD.Bot.Features.Leveling;
 using QotD.Bot.Features.Leveling.Data;
 using QotD.Bot.Features.Leveling.Services;
@@ -38,6 +39,7 @@ try
     // ── Module Infrastructure ──────────────────────────────────────────────────
     IBotModule[] modules = [
         new GeneralModule(),
+        new EconomyModule(),
         new LevelingModule(),
         new QotDModule(),
         new TempVoiceModule(),

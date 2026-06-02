@@ -15,6 +15,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<CountingChannelConfig> CountingChannels => Set<CountingChannelConfig>();
     public DbSet<WordChainConfig> WordChainConfigs => Set<WordChainConfig>();
     public DbSet<EconomyAccount> EconomyAccounts => Set<EconomyAccount>();
+    public DbSet<EconomyLedgerEntry> EconomyLedgerEntries => Set<EconomyLedgerEntry>();
 
     // Logging
     public DbSet<LogRoutingConfig> LogRoutingConfigs => Set<LogRoutingConfig>();
@@ -117,6 +118,16 @@ public sealed class AppDbContext : DbContext
             entity.Property(x => x.Balance).HasDefaultValue(0L);
             entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("now()");
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("now()");
+        });
+
+        modelBuilder.Entity<EconomyLedgerEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).ValueGeneratedOnAdd();
+            entity.Property(x => x.TransactionType).HasConversion<int>();
+            entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("now()");
+            entity.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.UserId, x.Id });
         });
 
         modelBuilder.Entity<LinkFilterConfig>(entity =>
