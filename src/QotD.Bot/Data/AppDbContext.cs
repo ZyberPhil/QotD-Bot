@@ -14,6 +14,7 @@ public sealed class AppDbContext : DbContext
     // MiniGames
     public DbSet<CountingChannelConfig> CountingChannels => Set<CountingChannelConfig>();
     public DbSet<WordChainConfig> WordChainConfigs => Set<WordChainConfig>();
+    public DbSet<EconomyAccount> EconomyAccounts => Set<EconomyAccount>();
 
     // Logging
     public DbSet<LogRoutingConfig> LogRoutingConfigs => Set<LogRoutingConfig>();
@@ -107,6 +108,15 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<WordChainConfig>(entity =>
         {
             entity.HasIndex(c => c.ChannelId).IsUnique();
+        });
+
+        modelBuilder.Entity<EconomyAccount>(entity =>
+        {
+            entity.HasKey(x => x.UserId);
+            entity.Property(x => x.UserId).ValueGeneratedNever();
+            entity.Property(x => x.Balance).HasDefaultValue(0L);
+            entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("now()");
+            entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("now()");
         });
 
         modelBuilder.Entity<LinkFilterConfig>(entity =>

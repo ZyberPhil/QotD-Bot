@@ -1,9 +1,9 @@
-using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using QotD.Bot.Data;
+using QotD.Bot.Data.Models;
 using QotD.Bot.Features.Economy.Models;
 
 namespace QotD.Bot.Features.Economy.Services;
@@ -15,103 +15,107 @@ public interface IEconomyService
     Task<EconomyResult> RemoveCoinsAsync(ulong userId, int amount);
 }
 
-public class EconomyService : IEconomyService
+public sealed class EconomyService : IEconomyService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<EconomyService> _logger;
-    private readonly bool _apiEnabled;
+    private readonly long _starterBalance;
 
-    public EconomyService(HttpClient httpClient, IConfiguration config, ILogger<EconomyService> logger)
+    public EconomyService(IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<EconomyService> logger)
     {
-        _httpClient = httpClient;
+        _scopeFactory = scopeFactory;
         _logger = logger;
-        
-        var baseUrl = config["EconomyApi:BaseUrl"];
-        _apiEnabled = !string.IsNullOrWhiteSpace(baseUrl);
-        
-        if (_apiEnabled)
-        {
-            _httpClient.BaseAddress = new Uri(baseUrl!);
-        }
+        _starterBalance = config.GetValue<long?>("Economy:StarterBalance") ?? 1000;
     }
 
     public async Task<EconomyResult> GetBalanceAsync(ulong userId)
     {
-        if (!_apiEnabled) return EconomyResult.Unavailable();
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        try
-        {
-            var response = await _httpClient.GetAsync($"/api/economy/users/{userId}/balance");
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<BalanceResponse>();
-                return EconomyResult.Success(result?.Balance);
-            }
-            return EconomyResult.Failure($"API Error: {response.StatusCode}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Economy API is unavailable (GetBalance).");
-            return EconomyResult.Unavailable();
-        }
+        var account = await GetOrCreateAccountAsync(db, userId);
+        return EconomyResult.Success(account.Balance);
     }
 
     public async Task<EconomyResult> AddCoinsAsync(ulong userId, int amount)
     {
-        if (!_apiEnabled) return EconomyResult.Unavailable();
         if (amount <= 0) return EconomyResult.Success();
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/economy/users/{userId}/add", new { Amount = amount });
-            if (response.IsSuccessStatusCode)
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var account = await GetOrCreateAccountAsync(db, userId);
+
+            checked
             {
-                var result = await response.Content.ReadFromJsonAsync<BalanceResponse>();
-                return EconomyResult.Success(result?.Balance);
+                account.Balance += amount;
             }
-            return EconomyResult.Failure($"API Error: {response.StatusCode}");
+
+            account.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return EconomyResult.Success(account.Balance);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Economy API is unavailable (AddCoins).");
-            return EconomyResult.Unavailable();
+            _logger.LogError(ex, "Failed to add coins for user {UserId}.", userId);
+            return EconomyResult.Failure("Guthaben konnte nicht gutgeschrieben werden.");
         }
     }
 
     public async Task<EconomyResult> RemoveCoinsAsync(ulong userId, int amount)
     {
-        if (!_apiEnabled) return EconomyResult.Unavailable();
         if (amount <= 0) return EconomyResult.Success();
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"/api/economy/users/{userId}/remove", new { Amount = amount });
-            if (response.IsSuccessStatusCode)
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var account = await GetOrCreateAccountAsync(db, userId);
+
+            if (account.Balance < amount)
             {
-                var result = await response.Content.ReadFromJsonAsync<BalanceResponse>();
-                return EconomyResult.Success(result?.Balance);
+                return EconomyResult.Failure($"Nicht genug Coins. Aktuell verfügbar: {account.Balance}.");
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                return EconomyResult.Failure(error?.Message ?? "Nicht genug Coins.");
-            }
-            return EconomyResult.Failure($"API Error: {response.StatusCode}");
+
+            account.Balance -= amount;
+            account.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return EconomyResult.Success(account.Balance);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Economy API is unavailable (RemoveCoins).");
-            return EconomyResult.Unavailable();
+            _logger.LogError(ex, "Failed to remove coins for user {UserId}.", userId);
+            return EconomyResult.Failure("Coins konnten nicht abgezogen werden.");
         }
     }
 
-    private class BalanceResponse
+    private async Task<EconomyAccount> GetOrCreateAccountAsync(AppDbContext db, ulong userId)
     {
-        public long Balance { get; set; }
-    }
+        var account = await db.EconomyAccounts.FirstOrDefaultAsync(x => x.UserId == userId);
+        if (account is not null)
+        {
+            return account;
+        }
 
-    private class ErrorResponse
-    {
-        public string Message { get; set; } = string.Empty;
+        account = new EconomyAccount
+        {
+            UserId = userId,
+            Balance = _starterBalance,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        };
+
+        db.EconomyAccounts.Add(account);
+        await db.SaveChangesAsync();
+
+        _logger.LogInformation("Created economy account for user {UserId} with starter balance {StarterBalance}.", userId, _starterBalance);
+        return account;
     }
 }

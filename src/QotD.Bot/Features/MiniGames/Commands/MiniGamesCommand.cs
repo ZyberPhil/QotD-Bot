@@ -156,9 +156,9 @@ public class BlackjackCommands
 {
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
-    private readonly EconomyService _economyService;
+    private readonly IEconomyService _economyService;
 
-    public BlackjackCommands(BlackjackService blackjackService, BlackjackImageService imageService, EconomyService economyService)
+    public BlackjackCommands(BlackjackService blackjackService, BlackjackImageService imageService, IEconomyService economyService)
     {
         _blackjackService = blackjackService;
         _imageService = imageService;
@@ -179,23 +179,20 @@ public class BlackjackCommands
         var guildId = ctx.Guild.Id;
         var userLock = _blackjackService.GetLock(guildId, ctx.User.Id);
         await userLock.WaitAsync();
+        var betReserved = false;
 
         try
         {
-            bool apiOffline = false;
             if (bet > 0)
             {
                 var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
-                if (!economyResult.IsApiAvailable)
-                {
-                    bet = 0;
-                    apiOffline = true;
-                }
-                else if (!economyResult.IsSuccess)
+                if (!economyResult.IsSuccess)
                 {
                     await ctx.RespondAsync($"❌ {economyResult.ErrorMessage}");
                     return;
                 }
+
+                betReserved = true;
             }
 
             var game = _blackjackService.StartGame(guildId, ctx.User.Id, bet);
@@ -204,7 +201,6 @@ public class BlackjackCommands
             _blackjackService.DealToPlayer(game);
             var img1 = _imageService.CreateGameTableImage(game.PlayerHand, game.DealerHand, true);
             var initialResponse = BlackjackUI.BuildResponse(game, img1, showButtons: false);
-            if (apiOffline) initialResponse.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
             // Hide buttons during initial deal animation
             await ctx.RespondAsync(initialResponse);
 
@@ -238,8 +234,11 @@ public class BlackjackCommands
         }
         catch (Exception)
         {
-            // We don't have an ILogger here directly, but we can use the context's provider if needed or just catch for safety.
-            // In this case, let's just ensure we respond.
+            if (betReserved && bet > 0)
+            {
+                await _economyService.AddCoinsAsync(ctx.User.Id, bet);
+            }
+
             await ctx.RespondAsync("Ein technischer Fehler ist aufgetreten.");
         }
         finally

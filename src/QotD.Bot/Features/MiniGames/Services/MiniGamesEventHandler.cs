@@ -28,6 +28,7 @@ public sealed class MiniGamesEventHandler :
     private readonly BlackjackService _blackjackService;
     private readonly BlackjackImageService _imageService;
     private readonly TowerService _towerService;
+    private readonly IEconomyService _economyService;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
     private static readonly ConcurrentDictionary<ulong, MiniGameChannelInfo> _minigameChannels = new();
     private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -37,13 +38,15 @@ public sealed class MiniGamesEventHandler :
         ILogger<MiniGamesEventHandler> logger,
         BlackjackService blackjackService,
         BlackjackImageService imageService,
-        TowerService towerService)
+        TowerService towerService,
+        IEconomyService economyService)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _blackjackService = blackjackService;
         _imageService = imageService;
         _towerService = towerService;
+        _economyService = economyService;
     }
 
     public async Task InitializeAsync()
@@ -157,18 +160,10 @@ public sealed class MiniGamesEventHandler :
                          int.TryParse(partsPlayAgain[4], out playAgainBet);
                      }
 
-                     bool apiOffline = false;
                      if (playAgainBet > 0)
                      {
-                         using var scope = _scopeFactory.CreateScope();
-                         var economy = scope.ServiceProvider.GetRequiredService<EconomyService>();
-                         var economyResult = await economy.RemoveCoinsAsync(pid, playAgainBet);
-                         if (!economyResult.IsApiAvailable)
-                         {
-                             playAgainBet = 0;
-                             apiOffline = true;
-                         }
-                         else if (!economyResult.IsSuccess)
+                         var economyResult = await _economyService.RemoveCoinsAsync(pid, playAgainBet);
+                         if (!economyResult.IsSuccess)
                          {
                              await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
                                  .WithContent($"❌ {economyResult.ErrorMessage}")
@@ -183,7 +178,6 @@ public sealed class MiniGamesEventHandler :
                      _blackjackService.DealToPlayer(g);
                      var img1 = _imageService.CreateGameTableImage(g.PlayerHand, g.DealerHand, true);
                      var initialResponse = BlackjackUI.BuildResponse(g, img1, showButtons: false);
-                     if (apiOffline) initialResponse.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
                      
                      // Hide buttons during animation to prevent early "Hit" clicks
                      await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, initialResponse);
@@ -357,9 +351,7 @@ public sealed class MiniGamesEventHandler :
 
         if (winAmount > 0)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var economy = scope.ServiceProvider.GetRequiredService<EconomyService>();
-            await economy.AddCoinsAsync(game.UserId, winAmount);
+            await _economyService.AddCoinsAsync(game.UserId, winAmount);
         }
     }
 
@@ -390,18 +382,10 @@ public sealed class MiniGamesEventHandler :
                     int.TryParse(parts[4], out playAgainBet);
                 }
 
-                bool apiOffline = false;
                 if (playAgainBet > 0)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var economy = scope.ServiceProvider.GetRequiredService<EconomyService>();
-                    var economyResult = await economy.RemoveCoinsAsync(playAgainUserId, playAgainBet);
-                    if (!economyResult.IsApiAvailable)
-                    {
-                        playAgainBet = 0;
-                        apiOffline = true;
-                    }
-                    else if (!economyResult.IsSuccess)
+                    var economyResult = await _economyService.RemoveCoinsAsync(playAgainUserId, playAgainBet);
+                    if (!economyResult.IsSuccess)
                     {
                         await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
                             .WithContent($"❌ {economyResult.ErrorMessage}")
@@ -412,7 +396,6 @@ public sealed class MiniGamesEventHandler :
 
                 var newGame = _towerService.StartGame(guildId, playAgainUserId, playAgainBet);
                 var response = TowerUI.BuildResponse(newGame);
-                if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
                 await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.UpdateMessage, response);
                 return;
             }
@@ -484,9 +467,7 @@ public sealed class MiniGamesEventHandler :
         {
             if (game.CurrentWin > 0)
             {
-                using var scope = _scopeFactory.CreateScope();
-                var economy = scope.ServiceProvider.GetRequiredService<EconomyService>();
-                await economy.AddCoinsAsync(game.UserId, game.CurrentWin);
+                await _economyService.AddCoinsAsync(game.UserId, game.CurrentWin);
             }
         }
     }

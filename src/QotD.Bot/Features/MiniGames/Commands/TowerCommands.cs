@@ -9,9 +9,9 @@ namespace QotD.Bot.Features.MiniGames.Commands;
 public class TowerCommands
 {
     private readonly TowerService _towerService;
-    private readonly EconomyService _economyService;
+    private readonly IEconomyService _economyService;
 
-    public TowerCommands(TowerService towerService, EconomyService economyService)
+    public TowerCommands(TowerService towerService, IEconomyService economyService)
     {
         _towerService = towerService;
         _economyService = economyService;
@@ -31,32 +31,33 @@ public class TowerCommands
         var guildId = ctx.Guild.Id;
         var userLock = _towerService.GetLock(guildId, ctx.User.Id);
         await userLock.WaitAsync();
+        var betReserved = false;
 
         try
         {
-            bool apiOffline = false;
             if (bet > 0)
             {
                 var economyResult = await _economyService.RemoveCoinsAsync(ctx.User.Id, bet);
-                if (!economyResult.IsApiAvailable)
-                {
-                    bet = 0;
-                    apiOffline = true;
-                }
-                else if (!economyResult.IsSuccess)
+                if (!economyResult.IsSuccess)
                 {
                     await ctx.RespondAsync($"❌ {economyResult.ErrorMessage}");
                     return;
                 }
+
+                betReserved = true;
             }
 
             var game = _towerService.StartGame(guildId, ctx.User.Id, bet);
             var response = TowerUI.BuildResponse(game);
-            if (apiOffline) response.WithContent("⚠️ Die Economy-API ist derzeit offline. Das Spiel startet ohne Echtgeld-Einsatz! (Just for Fun)");
             await ctx.RespondAsync(response);
         }
         catch (Exception)
         {
+            if (betReserved && bet > 0)
+            {
+                await _economyService.AddCoinsAsync(ctx.User.Id, bet);
+            }
+
             await ctx.RespondAsync("Ein technischer Fehler ist aufgetreten.");
         }
         finally
