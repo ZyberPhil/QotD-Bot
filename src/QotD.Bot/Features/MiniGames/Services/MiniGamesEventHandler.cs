@@ -7,7 +7,9 @@ using DSharpPlus.EventArgs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using QotD.Bot.Features.Leveling.Services;
 using QotD.Bot.Data;
 
 using QotD.Bot.Features.Economy.Services;
@@ -29,6 +31,8 @@ public sealed class MiniGamesEventHandler :
     private readonly BlackjackImageService _imageService;
     private readonly TowerService _towerService;
     private readonly IEconomyService _economyService;
+    private readonly LevelService _levelService;
+    private readonly IConfiguration _configuration;
     private readonly ConcurrentDictionary<ulong, SemaphoreSlim> _locks = new();
     private static readonly ConcurrentDictionary<ulong, MiniGameChannelInfo> _minigameChannels = new();
     private static readonly Regex _wordRegex = new("^[a-zäöüß]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -39,7 +43,9 @@ public sealed class MiniGamesEventHandler :
         BlackjackService blackjackService,
         BlackjackImageService imageService,
         TowerService towerService,
-        IEconomyService economyService)
+        IEconomyService economyService,
+        LevelService levelService,
+        IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -47,6 +53,8 @@ public sealed class MiniGamesEventHandler :
         _imageService = imageService;
         _towerService = towerService;
         _economyService = economyService;
+        _levelService = levelService;
+        _configuration = configuration;
     }
 
     public async Task InitializeAsync()
@@ -532,6 +540,30 @@ public sealed class MiniGamesEventHandler :
 
             await db.SaveChangesAsync();
             await message.CreateReactionAsync(DiscordEmoji.FromUnicode("✅"));
+
+            // Grant rewards: coins + XP (configurable in appsettings.json)
+            try
+            {
+                var now = DateTimeOffset.UtcNow;
+                var coins = _configuration.GetValue<int?>("Economy:Rewards:Counting:Coins") ?? 5;
+                var xp = _configuration.GetValue<int?>("Economy:Rewards:Counting:Xp") ?? 10;
+
+                await _economyService.AddCoinsAsync(author.Id, coins, actorUserId: null, reason: "Counting Reward");
+                await _levelService.GrantMessageXpAsync(guild.Id, author.Id, now);
+
+                var interval = _configuration.GetValue<int?>("Economy:Rewards:Milestone:Interval") ?? 10;
+                if (config.CurrentCount % interval == 0)
+                {
+                    var mCoins = _configuration.GetValue<int?>("Economy:Rewards:Milestone:Coins") ?? 20;
+                    var mXp = _configuration.GetValue<int?>("Economy:Rewards:Milestone:Xp") ?? 50;
+                    await _economyService.AddCoinsAsync(author.Id, mCoins, actorUserId: null, reason: "Counting Milestone Bonus");
+                    await _levelService.GrantMessageXpAsync(guild.Id, author.Id, now);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to grant counting rewards for user {UserId} in channel {ChannelId}", author.Id, channel.Id);
+            }
         }
         catch (Exception ex)
         {
