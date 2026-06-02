@@ -63,6 +63,16 @@ try
     builder.Services.Configure<SchedulingSettings>(
         builder.Configuration.GetSection(SchedulingSettings.SectionName));
 
+    void ConfigureAppDbContext(IServiceCollection services)
+    {
+        services.AddDbContext<AppDbContext>(options =>
+        {
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("Postgres"),
+                npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
+        });
+    }
+
     // ── CORS ───────────────────────────────────────────────────────────────────
     builder.Services.AddCors(options =>
     {
@@ -96,12 +106,7 @@ try
     });
 
     // ── Database ───────────────────────────────────────────────────────────────
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseNpgsql(
-            builder.Configuration.GetConnectionString("Postgres"),
-            npgsql => npgsql.MigrationsAssembly("QotD.Bot"));
-    });
+    ConfigureAppDbContext(builder.Services);
 
     // ── Register Module Services ───────────────────────────────────────────────
     foreach (var module in modules)
@@ -121,6 +126,7 @@ try
                 // Share essential singletons from the main host provider (DbContext already registered in main host)
                 services.AddSingleton(s.GetRequiredService<IServiceScopeFactory>());
                 services.AddSingleton(s.GetRequiredService<DiscordBotService>());
+                ConfigureAppDbContext(services);
 
                 foreach (var module in modules)
                 {
